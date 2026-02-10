@@ -576,6 +576,14 @@ body {
     <button class="lang-btn active" onclick="selectLang('it')" id="lang-it">Italiano</button>
     <button class="lang-btn" onclick="selectLang('en')" id="lang-en">English</button>
   </div>
+  <div style="margin-bottom:16px;">
+    <label style="font-size:10.5pt;font-weight:600;color:#4a5568;display:block;margin-bottom:6px;">🔑 OpenRouter API Key</label>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="password" id="api-key-input" placeholder="sk-or-v1-..." style="flex:1;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:10pt;transition:border-color 0.2s;" onfocus="this.style.borderColor='#0d7377'" onblur="this.style.borderColor='#e2e8f0'">
+      <button onclick="const i=document.getElementById('api-key-input');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="border:none;background:#edf2f7;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:14px;" title="Mostra/nascondi key">👁</button>
+    </div>
+    <p style="font-size:8.5pt;color:#a0aec0;margin-top:4px;">Ottieni la tua key su <a href="https://openrouter.ai/keys" target="_blank" style="color:#0d7377;">openrouter.ai/keys</a> — non viene mai salvata nel codice.</p>
+  </div>
   <div class="textarea-wrapper">
     <textarea id="jd-input" placeholder="Incolla qui la job description...&#10;&#10;L'AI analizzerà l'annuncio e adatterà il CV con le keyword e il tono giusto."></textarea>
     <button class="clear-btn" onclick="document.getElementById('jd-input').value=''; document.getElementById('jd-input').focus();" title="Cancella testo">&times;</button>
@@ -733,8 +741,30 @@ const CV_BASE = {
 
 // ===== API CONFIG =====
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const API_KEY = "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";
+let API_KEY = ""; // User must enter their own key
 const MODEL = "anthropic/claude-opus-4-6";
+
+function getApiKey() {
+  API_KEY = document.getElementById("api-key-input")?.value?.trim() || "";
+  if (!API_KEY) {
+    alert("⚠️ Inserisci la tua API Key di OpenRouter prima di procedere.");
+    return false;
+  }
+  // Save to sessionStorage (NOT localStorage, cleared on tab close)
+  try { sessionStorage.setItem("or_key", API_KEY); } catch(e) {}
+  return true;
+}
+
+// Restore key from session if available
+window.addEventListener("DOMContentLoaded", () => {
+  try {
+    const saved = sessionStorage.getItem("or_key");
+    if (saved) {
+      const inp = document.getElementById("api-key-input");
+      if (inp) { inp.value = saved; API_KEY = saved; }
+    }
+  } catch(e) {}
+});
 
 // ===== STATE =====
 let selectedLang = "it"; // language chosen BEFORE generation
@@ -765,6 +795,7 @@ function hideProgress() {
 
 // ===== AI GENERATION =====
 async function generateCV() {
+  if (!getApiKey()) return;
   const jd = document.getElementById("jd-input").value.trim();
   if (!jd) return;
 
@@ -1472,6 +1503,7 @@ function computeATSScore(jdText, cvText) {
 
 async function renderATSScore() {
   if (!generatedData) return;
+  if (!getApiKey()) return;
 
   const jd = document.getElementById("jd-input").value.trim();
   const cvText = document.getElementById("cv-container").innerText;
@@ -1765,6 +1797,7 @@ document.addEventListener("click", function(e) {
 // ===== ATS OPTIMIZATION (SECOND PASS) =====
 async function optimizeForATS() {
   if (!generatedData || !lastATSResult) return;
+  if (!getApiKey()) return;
 
   const btn = document.getElementById("btn-optimize");
   if (btn) { btn.disabled = true; btn.textContent = "Ottimizzazione in corso..."; }
