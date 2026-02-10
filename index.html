@@ -224,10 +224,10 @@ body {
 .cv-header {
   background: linear-gradient(135deg, #062e30 0%, #0a5c5f 50%, #0d7377 100%);
   color: #fff;
-  padding: 12mm 15mm 8mm 15mm;
+  padding: 10mm 12mm 7mm 12mm;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
 }
 .cv-photo {
   width: 70px;
@@ -248,7 +248,7 @@ body {
   font-size: 11.5pt;
   font-weight: 400;
   opacity: 0.92;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 .cv-contacts {
   font-size: 9pt;
@@ -260,10 +260,10 @@ body {
 .cv-contacts span { white-space: nowrap; }
 
 .cv-body {
-  padding: 6mm 15mm 6mm 15mm;
+  padding: 5mm 12mm 5mm 12mm;
 }
 
-.cv-section { margin-bottom: 4mm; }
+.cv-section { margin-bottom: 3mm; }
 .cv-section-title {
   font-size: 11pt;
   font-weight: 700;
@@ -272,13 +272,13 @@ body {
   letter-spacing: 1px;
   border-bottom: 1.5px solid #0d7377;
   padding-bottom: 1px;
-  margin-bottom: 3mm;
+  margin-bottom: 2mm;
 }
 
 /* Summary */
 .cv-summary {
   font-size: 9.5pt;
-  line-height: 1.4;
+  line-height: 1.35;
   text-align: justify;
 }
 
@@ -286,12 +286,12 @@ body {
 .cv-competencies {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
 }
 .cv-badge {
   background: #e6f7f7;
   color: #0d7377;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 4px;
   font-size: 9pt;
   font-weight: 600;
@@ -299,7 +299,7 @@ body {
 
 /* Experience */
 .cv-exp-item {
-  margin-bottom: 3mm;
+  margin-bottom: 2mm;
   break-inside: avoid;
 }
 .cv-exp-header {
@@ -321,19 +321,19 @@ body {
 .cv-exp-company {
   font-size: 9.5pt;
   color: #4a5568;
-  margin-bottom: 2mm;
+  margin-bottom: 1.5mm;
 }
 .cv-exp-bullets {
   list-style: disc;
   padding-left: 5mm;
   font-size: 9.5pt;
-  line-height: 1.45;
+  line-height: 1.35;
 }
-.cv-exp-bullets li { margin-bottom: 1mm; }
+.cv-exp-bullets li { margin-bottom: 0.5mm; }
 
 /* Education */
 .cv-edu-item {
-  margin-bottom: 3mm;
+  margin-bottom: 2mm;
   break-inside: avoid;
 }
 .cv-edu-degree {
@@ -352,7 +352,7 @@ body {
 /* Languages & Skills */
 .cv-inline-list {
   font-size: 9.5pt;
-  line-height: 1.5;
+  line-height: 1.35;
 }
 
 /* ===== ATS SCORE METER ===== */
@@ -527,6 +527,54 @@ body {
 #btn-optimize:hover { opacity: 0.9; }
 #btn-optimize:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ===== EDIT MODE ===== */
+#cv-container.editing [contenteditable="true"] {
+  outline: 2px dashed #0d737766;
+  outline-offset: 2px;
+  border-radius: 3px;
+  cursor: text;
+  transition: outline-color 0.2s, background 0.2s;
+}
+#cv-container.editing [contenteditable="true"]:hover {
+  outline-color: #0d7377;
+  background: rgba(13,115,119,0.04);
+}
+#cv-container.editing [contenteditable="true"]:focus {
+  outline: 2px solid #0d7377;
+  background: rgba(13,115,119,0.06);
+}
+#cv-container.editing .cv-badge[contenteditable="true"] {
+  outline-offset: 0px;
+}
+.edit-mode-banner {
+  display: none;
+  background: linear-gradient(90deg, #0d7377, #14b8a6);
+  color: #fff;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 9.5pt;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.edit-mode-banner.visible { display: block; }
+.edit-toggle-btn {
+  padding: 8px 16px;
+  border: 2px solid #f6ad55;
+  background: #fff;
+  color: #c05621;
+  border-radius: 6px;
+  font-size: 10pt;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.edit-toggle-btn.active {
+  background: #f6ad55;
+  color: #fff;
+  border-color: #f6ad55;
+}
+.edit-toggle-btn:hover { opacity: 0.85; }
+
 /* ===== PRINT ===== */
 @media print {
   @page {
@@ -538,7 +586,7 @@ body {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  #editor, #preview-bar { display: none !important; }
+  #editor, #preview-bar, .edit-mode-banner { display: none !important; }
   #preview { display: block !important; }
   #cv-container {
     box-shadow: none;
@@ -637,10 +685,12 @@ body {
       <div id="ats-changelog-anchor"></div>
     </div>
     <span class="spacer"></span>
+    <button class="edit-toggle-btn" id="btn-edit" onclick="toggleEditMode()">✏️ Modifica</button>
     <button class="action-btn primary" onclick="printCV()">Stampa CV</button>
     <button class="action-btn" onclick="downloadCV()">Scarica HTML</button>
     <button class="action-btn" onclick="backToEditor()">Nuova generazione</button>
   </div>
+  <div class="edit-mode-banner" id="edit-banner">✏️ Modalità modifica attiva — clicca sul testo per modificarlo, poi clicca "Salva" quando hai finito</div>
   <div id="cv-container"></div>
 </div>
 
@@ -1100,7 +1150,7 @@ function buildCVHTML() {
         </div>
         <div class="cv-exp-company">${isIt ? exp.company_it : exp.company_en}</div>
         <ul class="cv-exp-bullets">
-          ${adaptedBullets.map(b => `<li>${b}</li>`).join("")}
+          ${adaptedBullets.map((b, bi) => `<li data-field="exp-${i}-${bi}">${b}</li>`).join("")}
         </ul>
       </div>`;
   });
@@ -1123,7 +1173,7 @@ function buildCVHTML() {
       <img class="cv-photo" src="${CV_BASE.photo}" alt="Anna Marongiu">
       <div class="cv-header-text">
         <div class="cv-name">${CV_BASE.name}</div>
-        <div class="cv-headline">${headline}</div>
+        <div class="cv-headline" data-field="headline">${headline}</div>
         <div class="cv-contacts">
           <span>\u2709 ${CV_BASE.email}</span>
           <span>\u260E ${CV_BASE.phone}</span>
@@ -1134,11 +1184,11 @@ function buildCVHTML() {
     <div class="cv-body">
       <div class="cv-section">
         <div class="cv-section-title">${sectionLabels.summary}</div>
-        <div class="cv-summary">${summary}</div>
+        <div class="cv-summary" data-field="summary">${summary}</div>
       </div>
       <div class="cv-section">
         <div class="cv-section-title">${sectionLabels.competencies}</div>
-        <div class="cv-competencies">${badgesHTML}</div>
+        <div class="cv-competencies">${competencies.map((c, ci) => `<span class="cv-badge" data-field="comp-${ci}">${c}</span>`).join("")}</div>
       </div>
       <div class="cv-section">
         <div class="cv-section-title">${sectionLabels.experience}</div>
@@ -1151,7 +1201,7 @@ function buildCVHTML() {
       <div class="cv-section">
         <div class="cv-section-title">${sectionLabels.additional}</div>
         <div class="cv-inline-list"><strong>${isIt ? "Lingue" : "Languages"}:</strong> ${langText}</div>
-        <div class="cv-inline-list"><strong>${isIt ? "Strumenti" : "Tools"}:</strong> ${skills}</div>
+        <div class="cv-inline-list"><strong>${isIt ? "Strumenti" : "Tools"}:</strong> <span data-field="skills">${skills}</span></div>
       </div>
     </div>`;
 }
@@ -1172,13 +1222,10 @@ function showPreview() {
 }
 
 function backToEditor() {
+  if (editMode) toggleEditMode(); // save edits first
   document.getElementById("editor").style.display = "block";
   document.getElementById("preview").style.display = "none";
   document.title = "CV Generator — Anna Marongiu";
-}
-
-function printCV() {
-  window.print();
 }
 
 // ===== ATS SCORING ENGINE =====
@@ -2036,7 +2083,85 @@ function toggleChangelog() {
   }
 }
 
+// ===== EDIT MODE =====
+let editMode = false;
+
+function toggleEditMode() {
+  editMode = !editMode;
+  const container = document.getElementById("cv-container");
+  const btn = document.getElementById("btn-edit");
+  const banner = document.getElementById("edit-banner");
+
+  if (editMode) {
+    // Enable editing
+    container.classList.add("editing");
+    btn.classList.add("active");
+    btn.textContent = "💾 Salva";
+    banner.classList.add("visible");
+
+    // Make editable elements contenteditable
+    container.querySelectorAll("[data-field]").forEach(el => {
+      el.setAttribute("contenteditable", "true");
+      el.setAttribute("spellcheck", "true");
+    });
+  } else {
+    // Save and disable editing
+    syncEditsToData();
+    container.classList.remove("editing");
+    btn.classList.remove("active");
+    btn.textContent = "✏️ Modifica";
+    banner.classList.remove("visible");
+
+    container.querySelectorAll("[contenteditable]").forEach(el => {
+      el.removeAttribute("contenteditable");
+      el.removeAttribute("spellcheck");
+    });
+
+    // Re-score ATS with updated text
+    setTimeout(renderATSScore, 300);
+  }
+}
+
+function syncEditsToData() {
+  if (!generatedData) return;
+  const container = document.getElementById("cv-container");
+
+  container.querySelectorAll("[data-field]").forEach(el => {
+    const field = el.getAttribute("data-field");
+    const text = el.innerText.trim();
+
+    if (field === "headline") {
+      generatedData.headline = text;
+    } else if (field === "summary") {
+      generatedData.summary = text;
+    } else if (field === "skills") {
+      generatedData.skills = text;
+    } else if (field.startsWith("comp-")) {
+      const idx = parseInt(field.split("-")[1]);
+      if (generatedData.competencies && idx < generatedData.competencies.length) {
+        generatedData.competencies[idx] = text;
+      }
+    } else if (field.startsWith("exp-")) {
+      const parts = field.split("-");
+      const expIdx = parseInt(parts[1]);
+      const bulletIdx = parseInt(parts[2]);
+      if (generatedData.experience && generatedData.experience[expIdx] &&
+          generatedData.experience[expIdx].bullets && bulletIdx < generatedData.experience[expIdx].bullets.length) {
+        generatedData.experience[expIdx].bullets[bulletIdx] = text;
+      }
+    }
+  });
+}
+
+// Exit edit mode before print/download
+
+function printCV() {
+  if (editMode) toggleEditMode(); // save first
+  window.print();
+}
+
 function downloadCV() {
+  if (editMode) toggleEditMode(); // save first
   if (!generatedData) return;
 
   const lang = selectedLang;
@@ -2077,10 +2202,10 @@ body {
 .cv-header {
   background: linear-gradient(135deg, #062e30 0%, #0a5c5f 50%, #0d7377 100%);
   color: #fff;
-  padding: 12mm 15mm 8mm 15mm;
+  padding: 10mm 12mm 7mm 12mm;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
 }
 .cv-photo {
   width: 70px; height: 70px;
@@ -2091,36 +2216,36 @@ body {
 }
 .cv-header-text { flex: 1; }
 .cv-name { font-size: 20pt; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 1px; }
-.cv-headline { font-size: 11.5pt; font-weight: 400; opacity: 0.92; margin-bottom: 6px; }
+.cv-headline { font-size: 11.5pt; font-weight: 400; opacity: 0.92; margin-bottom: 5px; }
 .cv-contacts { font-size: 9pt; opacity: 0.88; display: flex; gap: 16px; flex-wrap: wrap; }
 .cv-contacts span { white-space: nowrap; }
-.cv-body { padding: 6mm 15mm 6mm 15mm; }
-.cv-section { margin-bottom: 4mm; }
+.cv-body { padding: 5mm 12mm 5mm 12mm; }
+.cv-section { margin-bottom: 3mm; }
 .cv-section-title {
   font-size: 11pt; font-weight: 700; color: #0d7377;
   text-transform: uppercase; letter-spacing: 1px;
   border-bottom: 1.5px solid #0d7377;
-  padding-bottom: 1px; margin-bottom: 3mm;
+  padding-bottom: 1px; margin-bottom: 2mm;
 }
-.cv-summary { font-size: 9.5pt; line-height: 1.4; text-align: justify; }
-.cv-competencies { display: flex; flex-wrap: wrap; gap: 6px; }
+.cv-summary { font-size: 9.5pt; line-height: 1.35; text-align: justify; }
+.cv-competencies { display: flex; flex-wrap: wrap; gap: 5px; }
 .cv-badge {
   background: #e6f7f7; color: #0d7377;
   padding: 2px 8px; border-radius: 4px;
   font-size: 8.5pt; font-weight: 600;
 }
-.cv-exp-item { margin-bottom: 3mm; }
+.cv-exp-item { margin-bottom: 2mm; }
 .cv-exp-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
 .cv-exp-role { font-size: 10.5pt; font-weight: 700; color: #2d3748; }
 .cv-exp-period { font-size: 9pt; color: #718096; white-space: nowrap; }
-.cv-exp-company { font-size: 9.5pt; color: #4a5568; margin-bottom: 2mm; }
-.cv-exp-bullets { list-style: disc; padding-left: 5mm; font-size: 9.5pt; line-height: 1.4; }
+.cv-exp-company { font-size: 9.5pt; color: #4a5568; margin-bottom: 1.5mm; }
+.cv-exp-bullets { list-style: disc; padding-left: 5mm; font-size: 9.5pt; line-height: 1.35; }
 .cv-exp-bullets li { margin-bottom: 0.5mm; }
 .cv-edu-item { margin-bottom: 2mm; }
 .cv-edu-degree { font-size: 10pt; font-weight: 700; }
 .cv-edu-school { font-size: 9.5pt; color: #4a5568; }
 .cv-edu-detail { font-size: 9pt; color: #718096; }
-.cv-inline-list { font-size: 9.5pt; line-height: 1.4; }
+.cv-inline-list { font-size: 9.5pt; line-height: 1.35; }
 </style>
 </head>
 <body>
