@@ -5,4 +5,4 @@ RUN npm ci --omit=dev
 COPY . .
 RUN mkdir -p uploads/photos uploads/cvs
 EXPOSE 3000
-CMD ["node", "server/index.js"]
+CMD ["sh", "-c", "node server/db/migrate.js && node server/index.js"]

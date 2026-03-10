@@ -66,6 +66,16 @@ export default async function authRoutes(app) {
     }
   });
 
+  // Dev-only login (bypasses OAuth for local testing)
+  app.post('/dev-login', async (req, reply) => {
+    if (process.env.NODE_ENV === 'production') return reply.code(404).send({ error: 'Not found' });
+    const { email, name } = req.body || {};
+    if (!email) return reply.code(400).send({ error: 'email required' });
+    const user = await findOrCreateUser({ email, name: name || 'Test User' });
+    req.session.userId = user.id;
+    reply.send({ user: { id: user.id, email: user.email, name: user.name } });
+  });
+
   app.get('/me', async (req, reply) => {
     if (!req.session.userId) return reply.send({ user: null });
     const result = await app.db.query('SELECT id, email, name FROM users WHERE id = $1', [req.session.userId]);
