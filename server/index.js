@@ -8,6 +8,7 @@ import { registerStatic } from './plugins/static.js';
 import { registerCors } from './plugins/cors.js';
 import { db } from './db/connection.js';
 import authRoutes from './routes/auth.js';
+import uploadRoutes from './routes/upload.js';
 
 const app = Fastify({ logger: true });
 
@@ -35,7 +36,7 @@ app.decorate('db', db);
 await app.register(authRoutes, { prefix: '/api/auth' });
 // await app.register(cvRoutes, { prefix: '/api/cv' });
 // await app.register(aiRoutes, { prefix: '/api/ai' });
-// await app.register(uploadRoutes, { prefix: '/api/upload' });
+await app.register(uploadRoutes, { prefix: '/api/upload' });
 
 // Static files (must be last — catches unmatched routes for SPA)
 await app.register(registerStatic);
