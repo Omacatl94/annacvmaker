@@ -7,6 +7,7 @@ import { config } from './config.js';
 import { registerStatic } from './plugins/static.js';
 import { registerCors } from './plugins/cors.js';
 import { db } from './db/connection.js';
+import authRoutes from './routes/auth.js';
 
 const app = Fastify({ logger: true });
 
@@ -31,7 +32,7 @@ await app.register(multipart, {
 app.decorate('db', db);
 
 // Routes will be registered in later tasks
-// await app.register(authRoutes, { prefix: '/api/auth' });
+await app.register(authRoutes, { prefix: '/api/auth' });
 // await app.register(cvRoutes, { prefix: '/api/cv' });
 // await app.register(aiRoutes, { prefix: '/api/ai' });
 // await app.register(uploadRoutes, { prefix: '/api/upload' });
