@@ -1,0 +1,2267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CV Generator — Anna Marongiu</title>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 10pt; }
+body {
+  font-family: "Calibri", "Segoe UI", Arial, sans-serif;
+  color: #2d3748;
+  background: #f0f0f0;
+  line-height: 1.4;
+}
+
+/* ===== EDITOR MODE ===== */
+#editor {
+  max-width: 700px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+}
+#editor h1 {
+  font-size: 22pt;
+  color: #0d7377;
+  margin-bottom: 6px;
+}
+#editor .subtitle {
+  color: #718096;
+  font-size: 11pt;
+  margin-bottom: 28px;
+}
+#editor textarea {
+  width: 100%;
+  height: 320px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: inherit;
+  font-size: 10.5pt;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+#editor textarea:focus {
+  outline: none;
+  border-color: #0d7377;
+}
+#editor textarea::placeholder { color: #a0aec0; }
+.textarea-wrapper {
+  position: relative;
+}
+.clear-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #e2e8f0;
+  color: #4a5568;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.clear-btn:hover {
+  background: #e53e3e;
+  color: #fff;
+}
+.lang-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.lang-selector label {
+  font-size: 10.5pt;
+  font-weight: 600;
+  color: #4a5568;
+}
+.lang-btn {
+  padding: 8px 20px;
+  border: 2px solid #0d7377;
+  background: #fff;
+  color: #0d7377;
+  border-radius: 6px;
+  font-size: 10.5pt;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.lang-btn.active {
+  background: #0d7377;
+  color: #fff;
+}
+#btn-generate {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  background: #0d7377;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13pt;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#btn-generate:hover { background: #0a5c5f; }
+#btn-generate:disabled {
+  background: #a0aec0;
+  cursor: not-allowed;
+}
+#status-bar {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 10.5pt;
+  min-height: 20px;
+}
+#status-bar.error { color: #e53e3e; }
+#status-bar.success { color: #0d7377; }
+#status-bar.loading { color: #718096; }
+#progress-container {
+  display: none;
+  margin-top: 18px;
+}
+#progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+#progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0d7377, #14b8a6);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.5s ease;
+}
+#progress-step {
+  margin-top: 8px;
+  font-size: 9.5pt;
+  color: #718096;
+  text-align: center;
+}
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2.5px solid #a0aec0;
+  border-top-color: #0d7377;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== PREVIEW MODE ===== */
+#preview { display: none; }
+#preview-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #fff;
+  border-bottom: 2px solid #e2e8f0;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  padding: 8px 20px;
+  border: 2px solid #0d7377;
+  background: #fff;
+  color: #0d7377;
+  border-radius: 6px;
+  font-size: 10.5pt;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn.active {
+  background: #0d7377;
+  color: #fff;
+}
+.action-btn {
+  padding: 8px 16px;
+  border: none;
+  background: #edf2f7;
+  color: #2d3748;
+  border-radius: 6px;
+  font-size: 10pt;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.action-btn:hover { background: #e2e8f0; }
+.action-btn.primary {
+  background: #0d7377;
+  color: #fff;
+}
+.action-btn.primary:hover { background: #0a5c5f; }
+.spacer { flex: 1; }
+
+#cv-container {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 30px auto;
+  background: #fff;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.12);
+}
+
+/* ===== CV STYLES ===== */
+.cv-header {
+  background: linear-gradient(135deg, #062e30 0%, #0a5c5f 50%, #0d7377 100%);
+  color: #fff;
+  padding: 10mm 12mm 7mm 12mm;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cv-photo {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.cv-header-text { flex: 1; }
+.cv-name {
+  font-size: 20pt;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 1px;
+}
+.cv-headline {
+  font-size: 11.5pt;
+  font-weight: 400;
+  opacity: 0.92;
+  margin-bottom: 5px;
+}
+.cv-contacts {
+  font-size: 9pt;
+  opacity: 0.88;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cv-contacts span { white-space: nowrap; }
+
+.cv-body {
+  padding: 5mm 12mm 5mm 12mm;
+}
+
+.cv-section { margin-bottom: 3mm; }
+.cv-section-title {
+  font-size: 11pt;
+  font-weight: 700;
+  color: #0d7377;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1.5px solid #0d7377;
+  padding-bottom: 1px;
+  margin-bottom: 2mm;
+}
+
+/* Summary */
+.cv-summary {
+  font-size: 9.5pt;
+  line-height: 1.35;
+  text-align: justify;
+}
+
+/* Competencies grid */
+.cv-competencies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.cv-badge {
+  background: #e6f7f7;
+  color: #0d7377;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9pt;
+  font-weight: 600;
+}
+
+/* Experience */
+.cv-exp-item {
+  margin-bottom: 2mm;
+  break-inside: avoid;
+}
+.cv-exp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.cv-exp-role {
+  font-size: 10.5pt;
+  font-weight: 700;
+  color: #2d3748;
+}
+.cv-exp-period {
+  font-size: 9pt;
+  color: #718096;
+  white-space: nowrap;
+}
+.cv-exp-company {
+  font-size: 9.5pt;
+  color: #4a5568;
+  margin-bottom: 1.5mm;
+}
+.cv-exp-bullets {
+  list-style: disc;
+  padding-left: 5mm;
+  font-size: 9.5pt;
+  line-height: 1.35;
+}
+.cv-exp-bullets li { margin-bottom: 0.5mm; }
+
+/* Education */
+.cv-edu-item {
+  margin-bottom: 2mm;
+  break-inside: avoid;
+}
+.cv-edu-degree {
+  font-size: 10pt;
+  font-weight: 700;
+}
+.cv-edu-school {
+  font-size: 9.5pt;
+  color: #4a5568;
+}
+.cv-edu-detail {
+  font-size: 9pt;
+  color: #718096;
+}
+
+/* Languages & Skills */
+.cv-inline-list {
+  font-size: 9.5pt;
+  line-height: 1.35;
+}
+
+/* ===== ATS SCORE METER ===== */
+.ats-score-widget {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.ats-dual-gauges {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.ats-gauge-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.ats-gauge {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+.ats-gauge svg {
+  width: 48px;
+  height: 48px;
+  transform: rotate(-90deg);
+}
+.ats-gauge-bg {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 5;
+}
+.ats-gauge-fill {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s ease, stroke 0.5s ease;
+}
+.ats-gauge-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: #2d3748;
+}
+.ats-gauge-label {
+  font-size: 7pt;
+  font-weight: 600;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.ats-score-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ats-score-label {
+  font-size: 9pt;
+  font-weight: 700;
+  color: #2d3748;
+}
+.ats-score-grade {
+  font-size: 8pt;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  width: fit-content;
+}
+.ats-score-grade.strong { background: #c6f6d5; color: #276749; }
+.ats-score-grade.moderate { background: #fefcbf; color: #975a16; }
+.ats-score-grade.weak { background: #fed7d7; color: #9b2c2c; }
+.ats-score-breakdown {
+  font-size: 7.5pt;
+  color: #718096;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.ats-tooltip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  z-index: 200;
+  min-width: 360px;
+  max-width: 440px;
+  font-size: 9pt;
+}
+.ats-tooltip.visible { display: block; }
+@media (max-width: 900px) {
+  .ats-tooltip {
+    left: 0;
+    transform: none;
+  }
+}
+.ats-tooltip-header {
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+.ats-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px solid #f7fafc;
+}
+.ats-tooltip-row:last-child { border-bottom: none; }
+.ats-tooltip-bar {
+  width: 60px;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+.ats-tooltip-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.ats-kw-section {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #e2e8f0;
+}
+.ats-kw-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 7.5pt;
+  margin: 1px 2px;
+  font-weight: 500;
+}
+.ats-kw-tag.exact { background: #c6f6d5; color: #276749; }
+.ats-kw-tag.semantic { background: #e9d8fd; color: #553c9a; }
+.ats-kw-tag.missing { background: #fed7d7; color: #9b2c2c; }
+#btn-optimize {
+  display: none;
+  margin-top: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #0d7377, #14b8a6);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 8.5pt;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+#btn-optimize:hover { opacity: 0.9; }
+#btn-optimize:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===== EDIT MODE ===== */
+#cv-container.editing [contenteditable="true"] {
+  outline: 2px dashed #0d737766;
+  outline-offset: 2px;
+  border-radius: 3px;
+  cursor: text;
+  transition: outline-color 0.2s, background 0.2s;
+}
+#cv-container.editing [contenteditable="true"]:hover {
+  outline-color: #0d7377;
+  background: rgba(13,115,119,0.04);
+}
+#cv-container.editing [contenteditable="true"]:focus {
+  outline: 2px solid #0d7377;
+  background: rgba(13,115,119,0.06);
+}
+#cv-container.editing .cv-badge[contenteditable="true"] {
+  outline-offset: 0px;
+}
+.edit-mode-banner {
+  display: none;
+  background: linear-gradient(90deg, #0d7377, #14b8a6);
+  color: #fff;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 9.5pt;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.edit-mode-banner.visible { display: block; }
+.edit-toggle-btn {
+  padding: 8px 16px;
+  border: 2px solid #f6ad55;
+  background: #fff;
+  color: #c05621;
+  border-radius: 6px;
+  font-size: 10pt;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.edit-toggle-btn.active {
+  background: #f6ad55;
+  color: #fff;
+  border-color: #f6ad55;
+}
+.edit-toggle-btn:hover { opacity: 0.85; }
+
+/* ===== PRINT ===== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  body {
+    background: #fff;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  #editor, #preview-bar, .edit-mode-banner { display: none !important; }
+  #preview { display: block !important; }
+  #cv-container {
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    width: 210mm;
+    min-height: auto;
+    overflow: visible;
+  }
+  .cv-body {
+    break-before: avoid;
+  }
+  .cv-header {
+    background: linear-gradient(135deg, #062e30 0%, #0a5c5f 50%, #0d7377 100%) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .cv-badge {
+    background: #e6f7f7 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .cv-exp-item { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== EDITOR ===== -->
+<div id="editor">
+  <h1>CV Generator</h1>
+  <p class="subtitle">Anna Marongiu — Process Transformation & Finance Professional</p>
+  <div class="lang-selector">
+    <label>Lingua del CV:</label>
+    <button class="lang-btn active" onclick="selectLang('it')" id="lang-it">Italiano</button>
+    <button class="lang-btn" onclick="selectLang('en')" id="lang-en">English</button>
+  </div>
+  <div style="margin-bottom:16px;">
+    <label style="font-size:10.5pt;font-weight:600;color:#4a5568;display:block;margin-bottom:6px;">🔑 OpenRouter API Key</label>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="password" id="api-key-input" placeholder="sk-or-v1-..." style="flex:1;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:10pt;transition:border-color 0.2s;" onfocus="this.style.borderColor='#0d7377'" onblur="this.style.borderColor='#e2e8f0'">
+      <button onclick="const i=document.getElementById('api-key-input');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="border:none;background:#edf2f7;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:14px;" title="Mostra/nascondi key">👁</button>
+    </div>
+    <p style="font-size:8.5pt;color:#a0aec0;margin-top:4px;">Ottieni la tua key su <a href="https://openrouter.ai/keys" target="_blank" style="color:#0d7377;">openrouter.ai/keys</a> — non viene mai salvata nel codice.</p>
+  </div>
+  <div class="textarea-wrapper">
+    <textarea id="jd-input" placeholder="Incolla qui la job description...&#10;&#10;L'AI analizzerà l'annuncio e adatterà il CV con le keyword e il tono giusto."></textarea>
+    <button class="clear-btn" onclick="document.getElementById('jd-input').value=''; document.getElementById('jd-input').focus();" title="Cancella testo">&times;</button>
+  </div>
+  <button id="btn-generate" onclick="generateCV()">Genera CV</button>
+  <div id="progress-container">
+    <div id="progress-bar-bg"><div id="progress-bar-fill"></div></div>
+    <div id="progress-step"></div>
+  </div>
+  <div id="status-bar"></div>
+</div>
+
+<!-- ===== PREVIEW ===== -->
+<div id="preview">
+  <div id="preview-bar">
+    <span id="preview-lang-label" style="font-weight:600;color:#0d7377;font-size:10.5pt;"></span>
+    <div class="ats-score-widget" id="ats-widget" style="position:relative;">
+      <div class="ats-dual-gauges">
+        <div class="ats-gauge-group">
+          <div class="ats-gauge">
+            <svg viewBox="0 0 48 48">
+              <circle class="ats-gauge-bg" cx="24" cy="24" r="19"/>
+              <circle class="ats-gauge-fill" id="ats-gauge-exact" cx="24" cy="24" r="19"
+                stroke-dasharray="119.38" stroke-dashoffset="119.38"/>
+            </svg>
+            <span class="ats-gauge-text" id="ats-text-exact">—</span>
+          </div>
+          <span class="ats-gauge-label">Classico</span>
+        </div>
+        <div class="ats-gauge-group">
+          <div class="ats-gauge">
+            <svg viewBox="0 0 48 48">
+              <circle class="ats-gauge-bg" cx="24" cy="24" r="19"/>
+              <circle class="ats-gauge-fill" id="ats-gauge-smart" cx="24" cy="24" r="19"
+                stroke-dasharray="119.38" stroke-dashoffset="119.38"/>
+            </svg>
+            <span class="ats-gauge-text" id="ats-text-smart">—</span>
+          </div>
+          <span class="ats-gauge-label">Smart</span>
+        </div>
+      </div>
+      <div class="ats-score-details">
+        <span class="ats-score-label">ATS Score</span>
+        <span class="ats-score-grade" id="ats-grade">—</span>
+        <span class="ats-score-breakdown" onclick="toggleATSTooltip()">dettagli</span>
+      </div>
+      <div class="ats-tooltip" id="ats-tooltip"></div>
+    </div>
+    <div id="changes-wrapper" style="position:relative;display:none;">
+      <button class="action-btn" id="btn-show-changes" onclick="toggleChangelog()" style="background:#e6f7f7;color:#0d7377;font-weight:600;">Modifiche ATS</button>
+      <div id="ats-changelog-anchor"></div>
+    </div>
+    <span class="spacer"></span>
+    <button class="edit-toggle-btn" id="btn-edit" onclick="toggleEditMode()">✏️ Modifica</button>
+    <button class="action-btn primary" onclick="printCV()">Stampa CV</button>
+    <button class="action-btn" onclick="downloadCV()">Scarica HTML</button>
+    <button class="action-btn" onclick="backToEditor()">Nuova generazione</button>
+  </div>
+  <div class="edit-mode-banner" id="edit-banner">✏️ Modalità modifica attiva — clicca sul testo per modificarlo, poi clicca "Salva" quando hai finito</div>
+  <div id="cv-container"></div>
+</div>
+
+<script>
+// ===== CV BASE DATA =====
+const CV_BASE = {
+  name: "Anna Marongiu",
+  photo: "1671557744955.jpg",
+  email: "annapaolamarongiu@gmail.com",
+  phone: "+39 340 3797823",
+  location_en: "Milan, Italy",
+  location_it: "Milano, Italia",
+  experience: [
+    {
+      role_en: "Supervising Senior — Financial Services",
+      role_it: "Supervising Senior — Financial Services",
+      company_en: "KPMG S.p.A., Milan",
+      company_it: "KPMG S.p.A., Milano",
+      period: "Oct 2022 — Present",
+      period_it: "Ott 2022 — Presente",
+      bullets_en: [
+        "Supported process transformation and governance redesign programs for leading European financial institutions, focusing on operational efficiency, digital workflow optimization, and regulatory alignment.",
+        "Led the optimization, digitalization, and enhancement of internal control systems (Italian Law 262/2005) for major payment institutions, covering the full lifecycle from testing and remediation to process automation.",
+        "Advised leading Italian and international banks on capital markets transactions (IPOs, bond issuances) and delivered technical accounting analysis on complex products (securitizations, derivatives, hedge accounting under IFRS 9).",
+        "Supported clients in ESG and CSRD regulatory transition, improving data collection processes and disclosure quality.",
+        "Coordinated cross-functional teams (Finance, Risk, Compliance, IT) across several European entities to standardize processes, strengthen collaboration, and drive continuous improvement."
+      ],
+      bullets_it: [
+        "Supporto a programmi di trasformazione dei processi e ridisegno della governance per primarie istituzioni finanziarie europee, con focus su efficienza operativa, ottimizzazione dei workflow digitali e allineamento normativo.",
+        "Ottimizzazione, digitalizzazione e rafforzamento dei sistemi di controllo interno (Legge 262/2005) per primari istituti di pagamento, coprendo l'intero ciclo di vita dal testing e remediation all'automazione dei processi.",
+        "Advisory a primarie banche italiane e internazionali su operazioni di capital markets (IPO, emissioni obbligazionarie) e analisi di technical accounting su prodotti complessi (cartolarizzazioni, derivati, hedge accounting secondo IFRS 9).",
+        "Supporto ai clienti nella transizione normativa ESG e CSRD, migliorando i processi di raccolta dati e la qualità dell'informativa.",
+        "Coordinamento di team cross-funzionali (Finance, Risk, Compliance, IT) in diverse entità europee per standardizzare i processi, rafforzare la collaborazione e promuovere il miglioramento continuo."
+      ]
+    },
+    {
+      role_en: "M&A Analyst",
+      role_it: "M&A Analyst",
+      company_en: "Holding Industriale S.p.A., Turin",
+      company_it: "Holding Industriale S.p.A., Torino",
+      period: "Jan 2020 — Jul 2020",
+      period_it: "Gen 2020 — Lug 2020",
+      bullets_en: [
+        "Supported valuation and financial modelling for potential acquisitions, conducting market research and benchmarking of target companies.",
+        "Assisted in due diligence processes and preparation of investment materials, collaborating with management on deal structuring and execution."
+      ],
+      bullets_it: [
+        "Supporto alla valutazione e al financial modelling per potenziali acquisizioni, con analisi di mercato e benchmarking delle società target.",
+        "Assistenza nei processi di due diligence e preparazione dei materiali di investimento, collaborando con il management sulla strutturazione e l'esecuzione delle operazioni."
+      ]
+    }
+  ],
+  education: [
+    {
+      degree_en: "Master of Science in Banking and Finance",
+      degree_it: "Laurea Magistrale in Banking and Finance",
+      school_en: "Università Cattolica del Sacro Cuore, Milan",
+      school_it: "Università Cattolica del Sacro Cuore, Milano",
+      period: "2020 — 2023",
+      grade: "110/110 cum laude"
+    },
+    {
+      degree_en: "Bachelor of Science in Business Administration",
+      degree_it: "Laurea Triennale in Economia Aziendale",
+      school_en: "Università degli Studi di Torino",
+      school_it: "Università degli Studi di Torino",
+      period: "2017 — 2020",
+      grade: "110/110 cum laude"
+    }
+  ],
+  languages_en: "Italian (Native) · English (Fluent)",
+  languages_it: "Italiano (Madrelingua) · Inglese (Fluente)",
+  // VERIFIED SKILLS ONLY — every item below is backed by CV, LinkedIn, or direct confirmation from Anna
+  skillsPool: [
+    // Process & Governance (from CV + LinkedIn)
+    "Process Transformation", "Governance Optimization", "Internal Controls (L.262/2005)",
+    "Digital Workflow Optimization", "Process Mapping", "Continuous Improvement",
+    "Operational Efficiency", "Digitalization",
+    // Finance & Technical Accounting (from LinkedIn + confirmed)
+    "IFRS 9", "Hedge Accounting", "Securitizations", "Derivatives",
+    "Capital Markets", "IPO Advisory", "Bond Issuances",
+    "ESG / CSRD Compliance", "Basel III",
+    // M&A & Valuation (from LinkedIn — M&A Analyst role)
+    "M&A Analysis", "Due Diligence", "Financial Modelling", "Company Valuation",
+    // Project & Coordination (from CV + confirmed formal PM)
+    "Project Management", "Cross-functional Coordination", "Stakeholder Management",
+    "Executive Reporting",
+    // Compliance & Risk (from CV — coordinates with Risk, does compliance)
+    "Compliance Assessment", "Risk Team Coordination",
+    // Tools (confirmed by Anna)
+    "VBA", "Excel Avanzato", "Power BI", "MS Office",
+    // Methodologies (confirmed by Anna)
+    "Lean / Six Sigma", "Agile / Scrum",
+    // Other (from CV)
+    "AI Tools", "Data Accuracy Improvement"
+  ]
+};
+
+// ===== API CONFIG =====
+const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+let API_KEY = ""; // User must enter their own key
+const MODEL = "anthropic/claude-opus-4-6";
+
+function getApiKey() {
+  API_KEY = document.getElementById("api-key-input")?.value?.trim() || "";
+  if (!API_KEY) {
+    alert("⚠️ Inserisci la tua API Key di OpenRouter prima di procedere.");
+    return false;
+  }
+  // Save to sessionStorage (NOT localStorage, cleared on tab close)
+  try { sessionStorage.setItem("or_key", API_KEY); } catch(e) {}
+  return true;
+}
+
+// Restore key from session if available
+window.addEventListener("DOMContentLoaded", () => {
+  try {
+    const saved = sessionStorage.getItem("or_key");
+    if (saved) {
+      const inp = document.getElementById("api-key-input");
+      if (inp) { inp.value = saved; API_KEY = saved; }
+    }
+  } catch(e) {}
+});
+
+// ===== STATE =====
+let selectedLang = "it"; // language chosen BEFORE generation
+let generatedData = null;
+let lastATSResult = null; // stores last Haiku scoring result for optimization
+let lockedKeywords = null; // locked keyword list from first analysis — reused on re-scores
+let lastChanges = null; // stores last optimization changes for toggle panel
+
+function selectLang(lang) {
+  selectedLang = lang;
+  document.getElementById("lang-it").classList.toggle("active", lang === "it");
+  document.getElementById("lang-en").classList.toggle("active", lang === "en");
+}
+
+// ===== PROGRESS BAR =====
+function setProgress(percent, stepText) {
+  const container = document.getElementById("progress-container");
+  const fill = document.getElementById("progress-bar-fill");
+  const step = document.getElementById("progress-step");
+  container.style.display = "block";
+  fill.style.width = percent + "%";
+  step.textContent = stepText;
+}
+
+function hideProgress() {
+  document.getElementById("progress-container").style.display = "none";
+}
+
+// ===== AI GENERATION =====
+async function generateCV() {
+  if (!getApiKey()) return;
+  const jd = document.getElementById("jd-input").value.trim();
+  if (!jd) return;
+
+  // Reset state for new generation
+  lockedKeywords = null;
+  lastATSResult = null;
+  lastChanges = null;
+  const changesWrapper = document.getElementById("changes-wrapper");
+  if (changesWrapper) changesWrapper.style.display = "none";
+  const existingChangelog = document.getElementById("ats-changelog");
+  if (existingChangelog) existingChangelog.remove();
+
+  const btn = document.getElementById("btn-generate");
+  const status = document.getElementById("status-bar");
+  btn.disabled = true;
+  status.className = "";
+  status.textContent = "";
+
+  const langLabel = selectedLang === "it" ? "italiano" : "inglese";
+
+  setProgress(10, "Analisi della job description...");
+  await sleep(400);
+
+  setProgress(20, "Preparazione dati CV in " + langLabel + "...");
+  const prompt = buildPrompt(jd);
+  await sleep(300);
+
+  setProgress(30, "Invio richiesta a Claude Opus 4.6...");
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + API_KEY,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://cv-generator.local",
+        "X-Title": "CV Generator Anna Marongiu"
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 4096,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    setProgress(70, "Risposta ricevuta, elaborazione...");
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      throw new Error("API Error " + response.status + ": " + errBody.substring(0, 200));
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    setProgress(80, "Parsing del contenuto generato...");
+    await sleep(200);
+
+    // Extract JSON from response (handle markdown code blocks)
+    let jsonStr = content;
+    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) jsonStr = jsonMatch[1];
+    jsonStr = jsonStr.trim();
+
+    generatedData = JSON.parse(jsonStr);
+
+    setProgress(90, "Rendering del CV...");
+    await sleep(300);
+
+    renderCV();
+
+    setProgress(100, "CV generato con successo!");
+    await sleep(500);
+
+    hideProgress();
+    showPreview();
+    status.className = "success";
+    status.textContent = "CV generato con successo!";
+  } catch (err) {
+    hideProgress();
+    status.className = "error";
+    status.textContent = "Errore: " + err.message;
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function buildPrompt(jd) {
+  const lang = selectedLang;
+  const isIt = lang === "it";
+  const langLabel = isIt ? "Italian" : "English";
+  const langInstruction = isIt
+    ? "Write in professional Italian business language. Keep English terms where standard in Italian corporate contexts (e.g., \"Project Management\", \"Stakeholder Management\", \"Due Diligence\")."
+    : "Write in professional English.";
+
+  // Send only the bullets in the selected language to save tokens
+  const cvData = {
+    name: CV_BASE.name,
+    experience: CV_BASE.experience.map(exp => ({
+      role: isIt ? exp.role_it : exp.role_en,
+      company: isIt ? exp.company_it : exp.company_en,
+      period: isIt ? exp.period_it : exp.period,
+      bullets: isIt ? exp.bullets_it : exp.bullets_en
+    })),
+    education: CV_BASE.education.map(edu => ({
+      degree: isIt ? edu.degree_it : edu.degree_en,
+      school: isIt ? edu.school_it : edu.school_en,
+      period: edu.period,
+      grade: edu.grade
+    })),
+    languages: isIt ? CV_BASE.languages_it : CV_BASE.languages_en,
+    skillsPool: CV_BASE.skillsPool
+  };
+
+  // Calculate actual durations to prevent AI from guessing wrong
+  const now = new Date();
+  const currentDate = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const kpmgStart = new Date(2022, 9); // Oct 2022
+  const kpmgMonths = (now.getFullYear() - kpmgStart.getFullYear()) * 12 + (now.getMonth() - kpmgStart.getMonth());
+  const kpmgYears = Math.floor(kpmgMonths / 12);
+  const kpmgDuration = kpmgYears + "+";
+
+  return `You are a professional CV writer. Your ONLY job is to adapt an existing CV to a job description by rephrasing and selecting — NEVER by inventing.
+
+TODAY'S DATE: ${currentDate}. Use this to calculate durations accurately.
+KPMG TENURE: ${kpmgDuration} years (from October 2022 to ${currentDate}). Always say "${kpmgDuration} years", never a shorter or more precise duration.
+
+OUTPUT LANGUAGE: ${langLabel}. ${langInstruction}
+
+=== STRICT RULES (VIOLATION = FAILURE) ===
+
+RULE 1 — ZERO INVENTION POLICY:
+- You may ONLY use skills, competencies, and tools that appear in the "skillsPool" array below.
+- You may ONLY rephrase the experience bullets provided — you CANNOT add new achievements, projects, clients, or metrics that are not in the original bullets.
+- If the job description requires a skill NOT in the skillsPool, DO NOT include it. Skip it silently.
+- If you are unsure whether something is in the pool, DO NOT include it.
+
+RULE 2 — COMPETENCY SELECTION:
+- Select 8-10 competencies EXCLUSIVELY from the skillsPool array.
+- Use the EXACT wording from the skillsPool${isIt ? " (translate to Italian where natural, keep English where standard in Italian corporate contexts)" : ""}.
+- Do NOT paraphrase, merge, or create new competency labels.
+
+RULE 3 — BULLET ADAPTATION:
+- Each output bullet MUST map to a specific input bullet. You are rephrasing, not creating.
+- You may reorder words, change emphasis, use synonyms for verbs, and highlight different aspects of the SAME fact.
+- You CANNOT add quantitative metrics (numbers, percentages, monetary amounts) that are not in the original bullet.
+- You CANNOT name clients, tools, or frameworks not already mentioned in that bullet.
+- KPMG role: EXACTLY 4 bullets. Select the 4 most relevant to the job description from the 5 provided. Drop the least relevant one.
+- M&A role: EXACTLY 2 bullets.
+- Each bullet MUST be max 230 characters (including spaces). If a rephrased bullet exceeds this, shorten it. This is critical to fit on one A4 page.
+
+RULE 4 — SUMMARY:
+- The professional summary must be EXACTLY 4 sentences, max 500 characters total (including spaces).
+- It must describe Anna using ONLY facts present in her experience and skills.
+- Include keywords from the job description ONLY IF they match skills in the skillsPool.
+- Never claim expertise in areas not covered by her experience.
+- NEVER mention the degree grade (110/110, cum laude), university name, or degree title in the summary. Education belongs ONLY in the Education section.
+
+RULE 5 — SKILLS LINE:
+- The "skills" field must list tools and methodologies ONLY from the skillsPool.
+- Do NOT add tools or methodologies from the job description that are not in the skillsPool.
+
+RULE 6 — FORMAT (CRITICAL — ONE A4 PAGE):
+- The CV MUST fit on a single A4 page. Exceeding one page is a FAILURE.
+- The headline must be max 8 words.
+- Target content budget: summary ~500 chars, 4 KPMG bullets ~230 chars each, 2 M&A bullets ~180 chars each, 10 competency badges, 1 skills line.
+- If in doubt, make it SHORTER. A slightly shorter CV that fits on one page beats a richer one that overflows.
+
+RULE 7 — TONE OF VOICE (CRITICAL):
+
+PERSONA: Anna is a mid-senior professional ready for her next step. She's moving from consulting to industry because she wants more direct impact. She's analytical, grounded, and ambitious without being arrogant.
+
+HEADLINE:
+- The headline sits right under the name. It must be concrete and specific — not an abstract concept.
+- It should read like a job title or domain description, not like a corporate slide title.
+- Reference the industry/sector AND the functional area. Use "|" to separate if needed.
+- NEVER use abstract nouns alone like "Governance dei Processi", "Ottimizzazione Organizzativa", "Trasformazione Digitale" — these are vague.
+- NEVER put university names, degree titles, or "Big4".
+- GOOD: "Process Optimization & Internal Controls | Financial Services"
+- GOOD: "Analista Processi e Controlli Interni | Banking & Payments"
+- GOOD: "Advisory Processi, Governance e Compliance — Settore Bancario"
+- BAD: "Governance dei Processi e Ottimizzazione Organizzativa" (sounds like a department name)
+- BAD: "Trasformazione e Innovazione nei Servizi Finanziari" (corporate slide, not a person)
+- BAD: "MSc Banking & Finance | Big4 Senior Advisor" (credentials, not capability)
+
+SUMMARY TONE:
+- Factual and direct. Lead with what she does and her domain, not who she worked for.
+- Ambitious but grounded: she takes ownership of her work without overclaiming.
+- NEVER use: "proven track record", "accomplished", "passionate", "driven", "visionary", "exceptional", "leading expert", "outstanding".
+- NEVER use: "driving innovation", "driving transformation", "thought leader", "change agent" — these are marketing, not work.
+- AVOID inflated qualifiers: "leading European institutions", "major international banks", "world-class". Say "banking and payments clients" without "leading/major".
+- NEVER mention specific KPMG client names — this is confidential. Describe clients by type: "banking clients", "payment institutions", "financial services clients".
+- Use concrete facts: years of experience, domains, specific client types, named methodologies.
+- GOOD: "Finance professional with ${kpmgDuration} years of advisory experience at KPMG, specializing in process optimization, internal controls (L.262), and digital workflow improvement for banking and payments clients. Looking to bring consulting-honed analytical and project management skills into an in-house transformation role."
+- BAD: "Accomplished senior professional with a proven ability to drive transformational change across leading European financial institutions, delivering exceptional results for C-level stakeholders."
+
+BULLET TONE:
+- Preferred verbs: analyzed, evaluated, optimized, designed, structured, coordinated, mapped, automated, streamlined, assessed, delivered, implemented.
+- AVOID: spearheaded, championed, pioneered, orchestrated — too pompous for a mid-senior profile.
+- Each bullet should be articulated (1-2 lines) with context and result when available.
+- Take reasonable ownership: "Optimized internal controls..." not "Supported the optimization of..." — she did the work, she can own it. But don't overclaim leadership she didn't have.
+- Be specific: name the regulation, the client type, the domain. "L.262 controls for payment institutions" beats "regulatory compliance for a major client".
+
+RULE 8 — KEYWORD MIRRORING (CRITICAL FOR ATS):
+
+Most ATS (Workday, Taleo, SuccessFactors) use EXACT keyword matching. If the job description says "normativa interna" and the CV says "documentazione di processo", the ATS does NOT match them. You MUST mirror the exact phrasing from the job description wherever possible.
+
+PRINCIPLE: When the JD uses a specific term and the CV data covers the same concept with different words, ALWAYS prefer the JD's exact wording in your output.
+
+APPLY MIRRORING TO ALL SECTIONS:
+- SUMMARY: weave in the JD's exact key phrases naturally. If the JD says "governo dei processi", write "governo dei processi" — not "gestione dei processi" or "governance operativa".
+- COMPETENCY BADGES: if a JD term matches a skillsPool item (even approximately), prefer the phrasing closest to the JD. Example: JD says "ottimizzazione dei processi" and skillsPool has "Process Transformation" → use "Process Transformation" but in the summary/bullets use "ottimizzazione dei processi".
+- BULLETS: when rephrasing, swap your synonym for the JD's exact word IF the meaning is equivalent. If JD says "redazione e aggiornamento della normativa interna", use those exact words instead of "documentazione di processo". If JD says "impatti organizzativi", write "impatti organizzativi" instead of "effetti sull'organizzazione".
+- SKILLS LINE: if the JD mentions a tool that exists in the skillsPool under a different name, use the JD's name. Example: JD says "pacchetto Office" → write "Pacchetto Office" instead of "MS Office".
+- HEADLINE: incorporate the JD's role title or key domain terms. If JD says "Analista Organizzativo – Processi di Governo", echo those terms.
+
+DO NOT MIRROR:
+- Terms that would require inventing skills not in the skillsPool (Rule 1 still applies)
+- Terms that would misrepresent Anna's actual experience
+- The company name in the headline or summary
+
+EXAMPLES:
+- JD: "analisi degli impatti organizzativi" → bullet: "Analizzato impatti organizzativi legati a nuove iniziative..." (mirrors "impatti organizzativi")
+- JD: "collaborazione con diverse funzioni aziendali" → bullet: "Collaborazione con diverse funzioni aziendali..." (mirrors exactly)
+- JD: "promozione di soluzioni organizzative efficaci" → bullet: "Promosso soluzioni organizzative..." (mirrors "soluzioni organizzative")
+- JD: "definizione, revisione e ottimizzazione dei processi" → bullet: "Definizione, revisione e ottimizzazione dei processi..." (mirrors the entire phrase)
+- JD: "pacchetto Office" → skills: "Pacchetto Office" (not "MS Office")
+- JD: "lingua inglese" → languages section already covers this, but summary can say "buona conoscenza della lingua inglese"
+
+SELF-CHECK: Before responding, scan the JD for its 10-15 most distinctive terms. For each, verify it appears VERBATIM at least once in your output (summary, bullets, competencies, or skills). If a key JD term is missing and can be mirrored without inventing, add it.
+
+=== CANDIDATE DATA ===
+
+${JSON.stringify(cvData, null, 2)}
+
+=== JOB DESCRIPTION ===
+
+${jd}
+
+=== SELF-CHECK BEFORE RESPONDING ===
+
+Before outputting your JSON, verify:
+1. Every competency in "competencies" exists VERBATIM in skillsPool (translated if Italian).
+2. Every skill in "skills" exists in skillsPool.
+3. Every experience bullet is a rephrase of an existing bullet — no new facts added.
+4. The summary contains no claims about skills/experience not in the provided data.
+5. KEYWORD MIRRORING CHECK: scan the JD for its 10-15 most important/distinctive terms. For each term, confirm it appears VERBATIM at least once somewhere in your output (headline, summary, competencies, bullets, or skills). If a JD term is missing and can be included without violating Rule 1 (zero invention), rephrase to include it.
+If any check fails, fix it before responding.
+
+=== OUTPUT FORMAT ===
+
+Respond with ONLY a valid JSON object (no markdown, no backticks, no explanation):
+{
+  "companyName": "Company Name (always in original language)",
+  "roleTitle": "Role Title (MUST be in ${langLabel} — translate if the job posting is in another language)",
+  "headline": "Professional headline (max 8 words)",
+  "summary": "Professional summary (3-4 sentences)",
+  "competencies": ["exactly from skillsPool", "max 10"],
+  "experience": [
+    {
+      "bullets": ["rephrased bullet 1", "rephrased bullet 2"]
+    }
+  ],
+  "skills": "Comma-separated tools/methodologies from skillsPool only"
+}
+
+The "experience" array must have exactly ${CV_BASE.experience.length} items, one per role, same order as input.`;
+}
+
+// ===== RENDERING =====
+function renderCV() {
+  if (!generatedData) return;
+  const container = document.getElementById("cv-container");
+  container.innerHTML = buildCVHTML();
+}
+
+function buildCVHTML() {
+  const d = generatedData;
+  const lang = selectedLang;
+  const isIt = lang === "it";
+
+  const headline = d.headline;
+  const summary = d.summary;
+  const competencies = d.competencies;
+  const skills = d.skills;
+  const sectionLabels = isIt
+    ? { summary: "Profilo Professionale", competencies: "Competenze Chiave", experience: "Esperienza Professionale", education: "Formazione", additional: "Lingue e Strumenti" }
+    : { summary: "Professional Summary", competencies: "Core Competencies", experience: "Professional Experience", education: "Education", additional: "Languages & Tools" };
+
+  let expHTML = "";
+  CV_BASE.experience.forEach((exp, i) => {
+    const adaptedBullets = d.experience[i] ? d.experience[i].bullets : (isIt ? exp.bullets_it : exp.bullets_en);
+    const period = isIt ? exp.period_it : exp.period;
+    expHTML += `
+      <div class="cv-exp-item">
+        <div class="cv-exp-header">
+          <span class="cv-exp-role">${isIt ? exp.role_it : exp.role_en}</span>
+          <span class="cv-exp-period">${period}</span>
+        </div>
+        <div class="cv-exp-company">${isIt ? exp.company_it : exp.company_en}</div>
+        <ul class="cv-exp-bullets">
+          ${adaptedBullets.map((b, bi) => `<li data-field="exp-${i}-${bi}">${b}</li>`).join("")}
+        </ul>
+      </div>`;
+  });
+
+  let eduHTML = "";
+  CV_BASE.education.forEach(edu => {
+    eduHTML += `
+      <div class="cv-edu-item">
+        <div class="cv-edu-degree">${isIt ? edu.degree_it : edu.degree_en}</div>
+        <div class="cv-edu-school">${isIt ? edu.school_it : edu.school_en} | ${edu.period}</div>
+        <div class="cv-edu-detail">${edu.grade}</div>
+      </div>`;
+  });
+
+  const badgesHTML = competencies.map(c => `<span class="cv-badge">${c}</span>`).join("");
+  const langText = isIt ? CV_BASE.languages_it : CV_BASE.languages_en;
+
+  return `
+    <div class="cv-header">
+      <img class="cv-photo" src="${CV_BASE.photo}" alt="Anna Marongiu">
+      <div class="cv-header-text">
+        <div class="cv-name">${CV_BASE.name}</div>
+        <div class="cv-headline" data-field="headline">${headline}</div>
+        <div class="cv-contacts">
+          <span>\u2709 ${CV_BASE.email}</span>
+          <span>\u260E ${CV_BASE.phone}</span>
+          <span>\u25CB ${isIt ? CV_BASE.location_it : CV_BASE.location_en}</span>
+        </div>
+      </div>
+    </div>
+    <div class="cv-body">
+      <div class="cv-section">
+        <div class="cv-section-title">${sectionLabels.summary}</div>
+        <div class="cv-summary" data-field="summary">${summary}</div>
+      </div>
+      <div class="cv-section">
+        <div class="cv-section-title">${sectionLabels.competencies}</div>
+        <div class="cv-competencies">${competencies.map((c, ci) => `<span class="cv-badge" data-field="comp-${ci}">${c}</span>`).join("")}</div>
+      </div>
+      <div class="cv-section">
+        <div class="cv-section-title">${sectionLabels.experience}</div>
+        ${expHTML}
+      </div>
+      <div class="cv-section">
+        <div class="cv-section-title">${sectionLabels.education}</div>
+        ${eduHTML}
+      </div>
+      <div class="cv-section">
+        <div class="cv-section-title">${sectionLabels.additional}</div>
+        <div class="cv-inline-list"><strong>${isIt ? "Lingue" : "Languages"}:</strong> ${langText}</div>
+        <div class="cv-inline-list"><strong>${isIt ? "Strumenti" : "Tools"}:</strong> <span data-field="skills">${skills}</span></div>
+      </div>
+    </div>`;
+}
+
+// ===== UI CONTROLS =====
+function showPreview() {
+  document.getElementById("editor").style.display = "none";
+  document.getElementById("preview").style.display = "block";
+  document.getElementById("preview-lang-label").textContent = selectedLang === "it" ? "Italiano" : "English";
+  // Update page title for printing
+  const company = (generatedData.companyName || "Company").replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
+  const role = (generatedData.roleTitle || "Role").replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
+  const langSuffix = selectedLang.toUpperCase();
+  document.title = `Anna_Marongiu_CV_${role}_${company}_${langSuffix}`;
+  renderCV();
+  // Calculate and display ATS score
+  setTimeout(renderATSScore, 100);
+}
+
+function backToEditor() {
+  if (editMode) toggleEditMode(); // save edits first
+  document.getElementById("editor").style.display = "block";
+  document.getElementById("preview").style.display = "none";
+  document.title = "CV Generator — Anna Marongiu";
+}
+
+// ===== ATS SCORING ENGINE =====
+
+const STOP_WORDS = new Set([
+  // English
+  "a","an","the","and","or","but","in","on","at","to","for","of","with","by","from","as","is","was","are","were",
+  "been","be","have","has","had","do","does","did","will","would","shall","should","may","might","can","could",
+  "it","its","this","that","these","those","i","you","he","she","we","they","me","him","her","us","them",
+  "my","your","his","our","their","what","which","who","whom","where","when","how","not","no","nor","if",
+  "then","than","so","just","also","very","all","each","every","both","few","more","most","other","some",
+  "such","only","own","same","too","about","above","after","before","between","into","through","during",
+  "up","down","out","off","over","under","again","further","once","here","there","any","new","work",
+  "working","well","role","team","ability","within","across","including","using","based","related","ensure",
+  // Italian
+  "il","lo","la","i","gli","le","un","uno","una","di","del","dello","della","dei","degli","delle",
+  "a","al","allo","alla","ai","agli","alle","da","dal","dallo","dalla","dai","dagli","dalle",
+  "in","nel","nello","nella","nei","negli","nelle","con","su","sul","sullo","sulla","sui","sugli","sulle",
+  "per","tra","fra","e","o","ma","che","chi","cui","non","se","come","dove","quando","quanto",
+  "anche","ancora","già","più","molto","tutto","tutti","ogni","altro","altri","questo","questa",
+  "questi","queste","quello","quella","quelli","quelle","suo","sua","suoi","sue","nostro","nostra",
+  "loro","essere","avere","fare","dire","potere","dovere","volere","sono","è","ha","hanno",
+  "sia","delle","nella","delle","alla","delle","alle","degli","della",
+  "ed","od","né","oppure","ovvero","inoltre","quindi","perché","però",
+  "attività","capacità","competenze","esperienza","ambito","particolare","livello","modo",
+  "area","funzione","ruolo","richiesta","richieste","candidato","candidata",
+  // Extended Italian stop words to prevent noise in ATS scoring
+  "attraverso","fanno","fatto","fare","tipo","cosa","caso","parte","punto",
+  "oltre","decenni","panorama","contesti","contesto","materie","ottica",
+  "nell","nell'","delle","degli","dalla","nella","nelle","sulle","sulla",
+  "interno","interna","quale","quali","volta","volte","dato","dati",
+  "giorno","giorni","anno","anni","mese","mesi","tempo",
+  "possibile","possibili","diversi","diverse","diverso","diversa",
+  "grande","grandi","nuovo","nuova","nuovi","nuove","primo","prima",
+  "secondo","terzo","alto","alta","basso","bassa","principale","principali",
+  "specifico","specifica","specifici","specifiche","complesso","complessa",
+  "importante","importanti","necessario","necessaria","necessari",
+  "adeguato","adeguata","adeguati","efficace","efficaci",
+  "relativo","relativa","relativi","relative","riferimento","riguardo",
+  "disponibile","disponibili","eventuale","eventuali",
+  "profilo","profili","sede","sedi","offerta","offerte",
+  "ricerca","cerca","ricerche","obiettivo","obiettivi",
+  "risultato","risultati","strumento","strumenti",
+  "sviluppo","crescita","interesse","opportunità",
+  "informazione","informazioni","dettaglio","dettagli",
+  "propensione","orientamento","attitudine","predisposizione",
+  "spiccate","eccellenti","consolidate","buona","buone","ottima","ottime",
+  "pregressa","precedente","maturata","maturate","acquisita","acquisite",
+  "costituisce","plus","completano","richiesti","gradita","gradito",
+  "ridefinisce","promuove","contribuire","mettere","gioco","occasione",
+  "sfidante","innovativo","ricco","impatto","diretto"
+]);
+
+function tokenize(text) {
+  return text.toLowerCase()
+    .replace(/['']/g, "'")
+    .replace(/[^a-zà-úA-Zà-ú0-9'/\-\.]/g, " ")
+    .split(/\s+/)
+    .filter(w => w.length > 1 && !STOP_WORDS.has(w));
+}
+
+// Known compound terms that should be matched as a unit
+const COMPOUND_TERMS = [
+  "project management", "gestione progetto", "gestione progetti",
+  "miglioramento continuo", "continuous improvement",
+  "controlli interni", "internal controls", "controllo interno",
+  "due diligence", "cross-functional", "cross-funzionali", "cross funzionali",
+  "normativa interna", "normativa esterna",
+  "six sigma", "lean six sigma",
+  "power bi", "machine learning",
+  "problem solving", "lavoro in team", "lavoro di squadra",
+  "risk management", "change management", "stakeholder management",
+  "process mapping", "process transformation", "digital transformation",
+  "trasformazione digitale", "analisi organizzativa", "analista organizzativo",
+  "impatti organizzativi", "revisione contabile",
+  "capital markets", "hedge accounting", "financial modelling",
+  "business process", "business intelligence",
+  "settore bancario", "settore finanziario", "servizi finanziari", "financial services",
+  "pacchetto office", "ms office",
+  "lingua inglese", "english language",
+  "laurea magistrale", "laurea triennale",
+  "master's degree", "bachelor's degree",
+  "workflow digitali", "digital workflow",
+  "raccolta dati", "data collection",
+  "soluzioni organizzative",
+  "processi aziendali", "processi interni",
+  "redazione aggiornamento",
+  "società consulenza"
+];
+
+function extractKeywords(text) {
+  const lower = text.toLowerCase();
+  const tokens = tokenize(text);
+  const keywords = [];
+  const seen = new Set();
+
+  // 1. First pass: find compound terms present in text
+  COMPOUND_TERMS.forEach(ct => {
+    if (lower.includes(ct) && !seen.has(ct)) {
+      keywords.push(ct);
+      seen.add(ct);
+    }
+  });
+
+  // 2. Second pass: meaningful unigrams (length > 3 to skip noise)
+  tokens.forEach(t => {
+    if (t.length > 3 && !seen.has(t)) {
+      keywords.push(t);
+      seen.add(t);
+    }
+  });
+
+  // 3. Third pass: short but meaningful terms (acronyms, tools)
+  tokens.forEach(t => {
+    if (t.length >= 2 && t.length <= 3 && SYNONYMS[t] && !seen.has(t)) {
+      keywords.push(t);
+      seen.add(t);
+    }
+  });
+
+  // Cap at 25 most meaningful keywords (compounds first, then longer words)
+  return keywords.slice(0, 25);
+}
+
+// Synonym/abbreviation map for matching
+const SYNONYMS = {
+  "pm": "project management", "pmo": "project management office",
+  "kpi": "key performance indicator", "kpis": "key performance indicators",
+  "ict": "information technology", "it": "information technology",
+  "esg": "esg", "csrd": "csrd",
+  "aml": "anti money laundering", "kyc": "know your customer",
+  "rpa": "robotic process automation", "bpr": "business process reengineering",
+  "erp": "enterprise resource planning", "crm": "customer relationship management",
+  "bi": "business intelligence", "ml": "machine learning", "ai": "artificial intelligence",
+  "ifrs": "ifrs", "sox": "sox", "gdpr": "gdpr",
+  "vba": "vba", "sql": "sql",
+  "agile": "agile", "scrum": "scrum", "lean": "lean", "six sigma": "six sigma",
+  "due diligence": "due diligence", "m&a": "m&a",
+  "stakeholder": "stakeholder management",
+  "cross-functional": "cross-functional coordination", "cross functional": "cross-functional coordination",
+  "processo": "process", "processi": "process",
+  "governance": "governance", "compliance": "compliance",
+  "ottimizzazione": "optimization", "digitalizzazione": "digitalization",
+  "coordinamento": "coordination", "gestione": "management",
+  "analisi": "analysis", "controlli": "controls", "interni": "internal",
+  "miglioramento continuo": "continuous improvement",
+  "controlli interni": "internal controls",
+  "gestione progetto": "project management", "project manager": "project management",
+  "trasformazione digitale": "digital transformation",
+  "banking": "banking", "finance": "finance", "financial": "finance",
+  "banca": "banking", "bancario": "banking", "finanziario": "finance",
+  "organizzativo": "organizzativo", "organizzativa": "organizzativo",
+  "organizzazione": "organizzativo",
+  "normativa": "normativa", "regolamentari": "normativa",
+  "strategiche": "strategia", "strategico": "strategia", "strategy": "strategia",
+  "iniziative": "iniziative", "progettualità": "project management",
+  "revisione": "audit", "contabile": "accounting",
+  "sinergie": "cross-functional coordination",
+  "trasversalmente": "cross-functional coordination",
+  "direttrici": "processi", "impatti": "analisi",
+  "innovativo": "innovation", "innovazione": "innovation",
+  "efficienza": "operational efficiency", "efficacia": "operational efficiency",
+};
+
+function normalizeKeyword(kw) {
+  const lower = kw.toLowerCase().trim();
+  return SYNONYMS[lower] || lower;
+}
+
+function computeATSScore(jdText, cvText) {
+  // === 1. KEYWORD MATCH (40%) ===
+  const jdKeywords = extractKeywords(jdText);
+  const cvTextLower = cvText.toLowerCase();
+  const cvTokens = new Set(tokenize(cvText));
+
+  // Build normalized CV token set for synonym matching
+  const cvNormalized = new Set();
+  cvTokens.forEach(t => cvNormalized.add(normalizeKeyword(t)));
+
+  let matchedKW = 0;
+  let totalKW = 0;
+  const matchedKeywords = [];
+  const missedKeywords = [];
+
+  jdKeywords.forEach(kw => {
+    totalKW++;
+    const norm = normalizeKeyword(kw);
+
+    // Match strategies (from most to least precise):
+    // 1. Exact substring in CV text
+    // 2. Token present in CV token set
+    // 3. Normalized synonym match
+    // 4. Stem match (first 5+ chars)
+    const exactMatch = cvTextLower.includes(kw);
+    const tokenMatch = cvTokens.has(kw);
+    const synonymMatch = cvNormalized.has(norm) || cvTextLower.includes(norm);
+
+    // Stem match: check if any CV token shares the same root (min 5 chars)
+    let stemMatch = false;
+    if (!exactMatch && !tokenMatch && !synonymMatch && kw.length >= 5) {
+      const kwStem = kw.substring(0, Math.max(5, kw.length - 2));
+      cvTokens.forEach(ct => {
+        if (ct.length >= 5 && ct.startsWith(kwStem)) stemMatch = true;
+      });
+    }
+
+    if (exactMatch || tokenMatch || synonymMatch || stemMatch) {
+      matchedKW++;
+      matchedKeywords.push(kw);
+    } else {
+      missedKeywords.push(kw);
+    }
+  });
+
+  const keywordScore = totalKW > 0 ? (matchedKW / totalKW) * 100 : 50;
+
+  // === 2. EXPERIENCE RELEVANCE (25%) ===
+  // Check if JD role-related words appear in CV (search across ALL JD text, not just first line)
+  const jdLowerFull = jdText.toLowerCase();
+  const roleKeywords = [
+    "analista", "analyst", "organizzativo", "organizzativa", "governance", "governo",
+    "processi", "process", "project manager", "project management", "pmo",
+    "consulenza", "advisory", "consulting", "advisor",
+    "banking", "bancario", "finanziario", "financial", "finance",
+    "transformation", "trasformazione", "ottimizzazione", "optimization",
+    "compliance", "risk", "audit", "internal controls", "controlli interni"
+  ];
+
+  let roleMatchCount = 0;
+  let roleCheckCount = 0;
+  roleKeywords.forEach(rk => {
+    if (jdLowerFull.includes(rk)) {
+      roleCheckCount++;
+      if (cvTextLower.includes(rk)) roleMatchCount++;
+    }
+  });
+  const roleScore = roleCheckCount > 0 ? (roleMatchCount / roleCheckCount) * 100 : 60;
+
+  // Years of experience check
+  const yearsMatch = jdText.match(/(\d+)\+?\s*(?:anni|years|year)/i);
+  const requiredYears = yearsMatch ? parseInt(yearsMatch[1]) : 0;
+  const now = new Date();
+  const kpmgMonthsTotal = (now.getFullYear() - 2022) * 12 + (now.getMonth() - 9);
+  const totalYears = kpmgMonthsTotal / 12 + 0.6; // +7 months M&A
+  let yearsScore = 100;
+  if (requiredYears > 0) {
+    yearsScore = totalYears >= requiredYears ? 100 : Math.min((totalYears / requiredYears) * 100, 100);
+  }
+  // If no years specified in JD, give good score for having 3+ years
+  if (requiredYears === 0 && totalYears >= 3) yearsScore = 90;
+
+  const experienceScore = roleScore * 0.6 + yearsScore * 0.4;
+
+  // === 3. EDUCATION (15%) ===
+  let educationScore = 85; // baseline — has Master + Bachelor with honors
+  const jdLower = jdText.toLowerCase();
+  // Check if JD education requirements match CV
+  const jdWantsEcon = jdLower.match(/econom|financ|finanz|banking|business/);
+  const jdWantsEng = jdLower.match(/ingegneria|engineering/);
+  const jdWantsMaster = jdLower.match(/laurea magistrale|master|msc|master's/);
+  const jdWantsDegree = jdLower.match(/laurea|degree|bachelor|diploma/);
+
+  // Anna has: MSc Banking & Finance + BSc Business Administration
+  if (jdWantsEcon) educationScore = 100; // perfect match
+  if (jdWantsMaster) educationScore = Math.max(educationScore, 95);
+  if (jdWantsDegree) educationScore = Math.max(educationScore, 90);
+  if (jdWantsEng && !jdWantsEcon) educationScore = 60; // she has econ, not eng — partial
+  if (jdLower.match(/mba/) && !cvTextLower.includes("mba")) educationScore = Math.min(educationScore, 65);
+  if (jdLower.match(/phd|dottorato/)) educationScore = Math.min(educationScore, 30);
+
+  // === 4. SECTION STRUCTURE (10%) — always perfect since we control the template ===
+  const structureScore = 100;
+
+  // === 5. RECENCY (5%) — KPMG is current, so always high ===
+  const recencyScore = 95;
+
+  // === 6. SOFT SKILLS (5%) ===
+  const softSkills = [
+    "leadership", "communication", "comunicazione", "teamwork", "lavoro di squadra",
+    "problem solving", "problem-solving", "analytical", "analitico", "time management",
+    "collaboration", "collaborazione", "interpersonal", "adaptability",
+    "critical thinking", "pensiero critico", "proactive", "proattivo",
+    "organizational", "organizzativo", "organizzativa", "autonomia", "autonomy"
+  ];
+  let softMatch = 0;
+  let softTotal = 0;
+  softSkills.forEach(ss => {
+    if (jdLower.includes(ss)) {
+      softTotal++;
+      if (cvTextLower.includes(ss)) softMatch++;
+    }
+  });
+  const softSkillScore = softTotal > 0 ? (softMatch / softTotal) * 100 : 70;
+
+  // === COMPOSITE SCORE ===
+  const total = Math.round(
+    keywordScore * 0.40 +
+    experienceScore * 0.25 +
+    educationScore * 0.15 +
+    structureScore * 0.10 +
+    recencyScore * 0.05 +
+    softSkillScore * 0.05
+  );
+
+  const grade = total >= 80 ? "STRONG" : total >= 60 ? "MODERATE" : "WEAK";
+
+  return {
+    total: Math.min(total, 99), // cap at 99 to stay realistic
+    grade,
+    breakdown: {
+      keywords: { score: Math.round(keywordScore), weight: 40, matched: matchedKeywords.length, total: totalKW },
+      experience: { score: Math.round(experienceScore), weight: 25 },
+      education: { score: Math.round(educationScore), weight: 15 },
+      structure: { score: Math.round(structureScore), weight: 10 },
+      recency: { score: Math.round(recencyScore), weight: 5 },
+      softSkills: { score: Math.round(softSkillScore), weight: 5 }
+    },
+    matchedKeywords,
+    missedKeywords: missedKeywords.slice(0, 10) // top 10 missed for display
+  };
+}
+
+async function renderATSScore() {
+  if (!generatedData) return;
+  if (!getApiKey()) return;
+
+  const jd = document.getElementById("jd-input").value.trim();
+  const cvText = document.getElementById("cv-container").innerText;
+
+  // Show loading state
+  document.getElementById("ats-text-exact").textContent = "...";
+  document.getElementById("ats-text-smart").textContent = "...";
+  document.getElementById("ats-grade").className = "ats-score-grade";
+  document.getElementById("ats-grade").textContent = "Analisi...";
+
+  // Try Haiku (primary scorer) — pass locked keywords if available (re-score mode)
+  const haikuResult = await scoreWithHaiku(jd, cvText, lockedKeywords);
+  if (haikuResult) {
+    // Lock keywords after FIRST successful analysis — reuse on all re-scores
+    if (!lockedKeywords) {
+      lockedKeywords = (haikuResult.keywords || []).map(k => k.term);
+      console.log("Keywords locked for this JD:", lockedKeywords.length, "terms");
+    }
+    displayATSScore(haikuResult);
+  } else {
+    // Fallback to local scoring — build keyword tags from local analysis
+    const localResult = computeATSScore(jd, cvText);
+    const kwTags = localResult.matchedKeywords.map(t => ({term: t, match: "exact"}))
+      .concat(localResult.missedKeywords.map(t => ({term: t, match: "missing"})));
+    displayATSScore({
+      keywords: kwTags,
+      classic: {
+        keywords: Math.round(localResult.breakdown.keywords.score * 0.7),
+        experience: localResult.breakdown.experience.score,
+        education: localResult.breakdown.education.score,
+        structure: localResult.breakdown.structure.score,
+        soft_skills: localResult.breakdown.softSkills.score,
+        total: Math.round(localResult.total * 0.8)
+      },
+      smart: {
+        keywords: localResult.breakdown.keywords.score,
+        experience: localResult.breakdown.experience.score,
+        education: localResult.breakdown.education.score,
+        structure: localResult.breakdown.structure.score,
+        soft_skills: localResult.breakdown.softSkills.score,
+        total: localResult.total
+      },
+      tip: "Scoring locale (fallback) — riprova per analisi AI più precisa."
+    });
+  }
+}
+
+async function scoreWithHaiku(jdText, cvText, fixedKeywords) {
+  try {
+    // Build keyword instruction: either extract new ones or re-evaluate fixed list
+    let keywordInstruction;
+    if (fixedKeywords && fixedKeywords.length > 0) {
+      keywordInstruction = `=== FIXED KEYWORD LIST (DO NOT EXTRACT NEW ONES) ===
+You MUST evaluate EXACTLY these ${fixedKeywords.length} keywords — no more, no fewer. Do NOT add or remove any:
+${JSON.stringify(fixedKeywords)}
+
+For EACH keyword above, classify:
+   - "exact": keyword or direct morphological variant appears LITERALLY in CV text
+   - "semantic": concept IS covered but with DIFFERENT wording (only Smart ATS catches this)
+   - "missing": concept NOT covered at all`;
+    } else {
+      keywordInstruction = `=== TASK ===
+1. Extract 15-25 key requirements/skills/terms from the JD (hard skills, tools, methodologies, domain knowledge, qualifications, soft skills).
+
+2. For EACH keyword, classify:
+   - "exact": keyword or direct morphological variant appears LITERALLY in CV text
+   - "semantic": concept IS covered but with DIFFERENT wording (only Smart ATS catches this)
+   - "missing": concept NOT covered at all`;
+    }
+
+    const prompt = `You are a dual ATS scoring engine. You simulate TWO types of ATS:
+
+1. CLASSIC ATS (Workday, Taleo, SuccessFactors) — strict exact keyword matching. Only counts a keyword as matched if the exact word/phrase (or a direct morphological variant: plurale/singolare, maschile/femminile, verb conjugation) appears literally in the CV. "pacchetto Office" does NOT match "MS Office". "lingua inglese" does NOT match "Inglese (Fluente)". "processi aziendali" does NOT match "processi operativi".
+
+2. SMART ATS (AI-powered, HiredScore) — semantic understanding, recognizes synonyms, paraphrases, conceptual equivalence. "pacchetto Office" = "MS Office". "lavoro in team" = "team cross-funzionali". "normativa interna" = "documentazione di processo".
+
+=== JOB DESCRIPTION ===
+${jdText.substring(0, 4000)}
+
+=== CV CONTENT ===
+${cvText.substring(0, 4000)}
+
+${keywordInstruction}
+
+3. Score each dimension TWICE (classic / smart), 0-100:
+   - Keywords: classic counts only "exact"; smart counts "exact" + "semantic"
+   - Experience: classic = job title keyword overlap only; smart = full role relevance
+   - Education: classic = degree keywords present literally; smart = field + level match
+   - Structure: same for both
+   - Soft Skills: classic = exact phrases; smart = evidenced through context
+
+=== OUTPUT ===
+
+ONLY valid JSON (no markdown, no backticks, no explanation):
+
+{
+  "keywords": [
+    {"term": "keyword", "match": "exact|semantic|missing"}
+  ],
+  "classic": {
+    "keywords": 0-100,
+    "experience": 0-100,
+    "education": 0-100,
+    "structure": 0-100,
+    "soft_skills": 0-100,
+    "total": 0-100
+  },
+  "smart": {
+    "keywords": 0-100,
+    "experience": 0-100,
+    "education": 0-100,
+    "structure": 0-100,
+    "soft_skills": 0-100,
+    "total": 0-100
+  },
+  "tip": "One tip to improve CLASSIC ATS score (in Italian, max 25 words)"
+}
+
+WEIGHTS for "total": Keywords 40%, Experience 25%, Education 15%, Structure 10%, Soft Skills 10%.
+"total" MUST equal the weighted average. Be REALISTIC: smart 75-88, classic 55-75 typically.`;
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + API_KEY,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://cv-generator.local",
+        "X-Title": "CV ATS Scorer"
+      },
+      body: JSON.stringify({
+        model: "anthropic/claude-haiku-4.5",
+        max_tokens: 1500,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Haiku API error:", response.status, errText.substring(0, 300));
+      return null;
+    }
+
+    const data = await response.json();
+    console.log("Haiku raw response:", JSON.stringify(data).substring(0, 500));
+    let content = data.choices[0].message.content;
+    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) content = jsonMatch[1];
+    const parsed = JSON.parse(content.trim());
+
+    // CODE ENFORCEMENT: if we sent a fixed keyword list, filter out any keywords Haiku added on its own
+    if (fixedKeywords && fixedKeywords.length > 0 && parsed.keywords) {
+      const allowedSet = new Set(fixedKeywords.map(k => k.toLowerCase()));
+      const before = parsed.keywords.length;
+      parsed.keywords = parsed.keywords.filter(k => allowedSet.has(k.term.toLowerCase()));
+      if (parsed.keywords.length !== before) {
+        console.log(`Haiku returned ${before} keywords, filtered to ${parsed.keywords.length} (locked list enforced)`);
+      }
+    }
+
+    console.log("Haiku parsed:", parsed.classic?.total, "classic /", parsed.smart?.total, "smart,", parsed.keywords?.length, "keywords");
+    return parsed;
+  } catch (e) {
+    console.error("Haiku ATS scoring failed:", e.message, e);
+    return null;
+  }
+}
+
+function animateGauge(fillId, textId, score) {
+  const circumference = 2 * Math.PI * 19; // r=19 → ~119.38
+  const offset = circumference - (score / 100) * circumference;
+  const fill = document.getElementById(fillId);
+  const color = score >= 80 ? "#38a169" : score >= 60 ? "#d69e2e" : "#e53e3e";
+  fill.style.stroke = color;
+  fill.style.strokeDashoffset = offset;
+  document.getElementById(textId).textContent = score + "%";
+}
+
+function displayATSScore(result) {
+  if (!result) return;
+  lastATSResult = result; // save for optimization
+
+  const kws = result.keywords || [];
+  const exactKws = kws.filter(k => k.match === "exact");
+  const semanticKws = kws.filter(k => k.match === "semantic");
+  const missingKws = kws.filter(k => k.match === "missing");
+
+  const classicTotal = result.classic ? result.classic.total : 0;
+  const smartTotal = result.smart ? result.smart.total : 0;
+
+  // Animate both gauges
+  animateGauge("ats-gauge-exact", "ats-text-exact", Math.min(classicTotal, 99));
+  animateGauge("ats-gauge-smart", "ats-text-smart", Math.min(smartTotal, 99));
+
+  // Grade badge (based on smart score — more realistic)
+  const gradeEl = document.getElementById("ats-grade");
+  const grade = smartTotal >= 80 ? "STRONG" : smartTotal >= 60 ? "MODERATE" : "WEAK";
+  const gradeClass = grade === "STRONG" ? "strong" : grade === "MODERATE" ? "moderate" : "weak";
+  const gradeLabel = grade === "STRONG" ? "Alta affinità" : grade === "MODERATE" ? "Media affinità" : "Bassa affinità";
+  gradeEl.className = "ats-score-grade " + gradeClass;
+  gradeEl.textContent = gradeLabel;
+
+  // Tooltip — dual breakdown
+  const labels = { keywords: "Keywords", experience: "Esperienza", education: "Formazione", structure: "Struttura", soft_skills: "Soft Skills" };
+  const dimensions = ["keywords", "experience", "education", "structure", "soft_skills"];
+  const weights = { keywords: 40, experience: 25, education: 15, structure: 10, soft_skills: 10 };
+
+  let tooltipHTML = `<div class="ats-tooltip-header">Classico vs Smart — Breakdown</div>`;
+
+  dimensions.forEach(dim => {
+    const cs = result.classic ? (result.classic[dim] || 0) : 0;
+    const ss = result.smart ? (result.smart[dim] || 0) : 0;
+    const cColor = cs >= 80 ? "#38a169" : cs >= 60 ? "#d69e2e" : "#e53e3e";
+    const sColor = ss >= 80 ? "#38a169" : ss >= 60 ? "#d69e2e" : "#e53e3e";
+    tooltipHTML += `
+      <div class="ats-tooltip-row">
+        <span>${labels[dim]} <small style="color:#a0aec0">(${weights[dim]}%)</small></span>
+        <span style="display:flex;gap:6px;align-items:center;">
+          <small style="color:#718096">C:</small><strong style="width:28px;text-align:right">${cs}%</strong>
+          <span class="ats-tooltip-bar" style="width:40px"><span class="ats-tooltip-bar-fill" style="width:${cs}%;background:${cColor}"></span></span>
+          <small style="color:#718096">S:</small><strong style="width:28px;text-align:right">${ss}%</strong>
+          <span class="ats-tooltip-bar" style="width:40px"><span class="ats-tooltip-bar-fill" style="width:${ss}%;background:${sColor}"></span></span>
+        </span>
+      </div>`;
+  });
+
+  // Keyword tags with color coding + checkboxes for missing/semantic
+  if (kws.length > 0) {
+    tooltipHTML += `<div class="ats-kw-section">
+      <small style="font-weight:700;color:#4a5568;">Keywords analizzate (${kws.length}):</small><br>`;
+    exactKws.forEach(k => { tooltipHTML += `<span class="ats-kw-tag exact">${k.term}</span>`; });
+    // Semantic keywords — selectable
+    if (semanticKws.length > 0) {
+      tooltipHTML += `<br><small style="color:#553c9a;font-weight:600;margin-top:4px;display:inline-block;">Semantic (seleziona per convertire in exact):</small><br>`;
+      semanticKws.forEach((k, i) => {
+        tooltipHTML += `<label style="display:inline-flex;align-items:center;margin:2px 3px;cursor:pointer;">
+          <input type="checkbox" class="ats-kw-check" data-term="${k.term}" data-type="semantic" checked style="margin-right:3px;accent-color:#553c9a;">
+          <span class="ats-kw-tag semantic" style="margin:0">${k.term}</span>
+        </label>`;
+      });
+    }
+    // Missing keywords — selectable
+    if (missingKws.length > 0) {
+      tooltipHTML += `<br><small style="color:#9b2c2c;font-weight:600;margin-top:4px;display:inline-block;">Missing (seleziona per incorporare):</small><br>`;
+      missingKws.forEach((k, i) => {
+        tooltipHTML += `<label style="display:inline-flex;align-items:center;margin:2px 3px;cursor:pointer;">
+          <input type="checkbox" class="ats-kw-check" data-term="${k.term}" data-type="missing" checked style="margin-right:3px;accent-color:#e53e3e;">
+          <span class="ats-kw-tag missing" style="margin:0">${k.term}</span>
+        </label>`;
+      });
+    }
+    tooltipHTML += `<br><small style="color:#a0aec0;font-size:7pt;margin-top:4px;display:inline-block;">
+      <span style="color:#276749">■</span> exact &nbsp;
+      <span style="color:#553c9a">■</span> semantic &nbsp;
+      <span style="color:#9b2c2c">■</span> missing
+    </small></div>`;
+  }
+
+  if (result.tip) {
+    tooltipHTML += `<div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;">
+      <small style="color:#0d7377;font-weight:600">Suggerimento:</small><br>
+      <small style="color:#4a5568">${result.tip}</small>
+    </div>`;
+  }
+
+  // Show optimize button if there are missing or semantic-only keywords
+  if (missingKws.length > 0 || semanticKws.length > 0) {
+    const totalOptimizable = missingKws.length + semanticKws.length;
+    tooltipHTML += `<button id="btn-optimize" style="display:block" onclick="optimizeForATS()">
+      Ottimizza ATS — incorpora keyword selezionate (${totalOptimizable})
+    </button>
+    <small style="color:#a0aec0;font-size:7pt;display:block;margin-top:4px;text-align:center;">
+      Deseleziona le keyword che non vuoi incorporare
+    </small>`;
+  }
+
+  document.getElementById("ats-tooltip").innerHTML = tooltipHTML;
+}
+
+function toggleATSTooltip() {
+  document.getElementById("ats-tooltip").classList.toggle("visible");
+}
+
+// Close tooltip when clicking outside
+document.addEventListener("click", function(e) {
+  const widget = document.getElementById("ats-widget");
+  if (widget && !widget.contains(e.target)) {
+    document.getElementById("ats-tooltip").classList.remove("visible");
+  }
+});
+
+// ===== ATS OPTIMIZATION (SECOND PASS) =====
+async function optimizeForATS() {
+  if (!generatedData || !lastATSResult) return;
+  if (!getApiKey()) return;
+
+  const btn = document.getElementById("btn-optimize");
+  if (btn) { btn.disabled = true; btn.textContent = "Ottimizzazione in corso..."; }
+
+  // Read only user-selected keywords from checkboxes
+  const checkboxes = document.querySelectorAll(".ats-kw-check:checked");
+  const selectedMissing = [];
+  const selectedSemantic = [];
+  checkboxes.forEach(cb => {
+    if (cb.dataset.type === "missing") selectedMissing.push(cb.dataset.term);
+    if (cb.dataset.type === "semantic") selectedSemantic.push(cb.dataset.term);
+  });
+  const missingKws = selectedMissing;
+  const semanticKws = selectedSemantic;
+
+  if (missingKws.length === 0 && semanticKws.length === 0) {
+    alert("Nessuna keyword selezionata. Seleziona almeno una keyword da incorporare.");
+    return;
+  }
+
+  // Collect current EXACT match keywords — optimizer MUST preserve these
+  const exactKws = (lastATSResult.keywords || [])
+    .filter(k => k.match === "exact")
+    .map(k => k.term);
+
+  const jd = document.getElementById("jd-input").value.trim();
+  const lang = selectedLang;
+  const isIt = lang === "it";
+  const langLabel = isIt ? "Italian" : "English";
+
+  // Build the real CV data as ground truth anchor
+  const cvData = {
+    experience: CV_BASE.experience.map(exp => ({
+      role: isIt ? exp.role_it : exp.role_en,
+      company: isIt ? exp.company_it : exp.company_en,
+      period: isIt ? exp.period_it : exp.period,
+      bullets: isIt ? exp.bullets_it : exp.bullets_en
+    })),
+    education: CV_BASE.education.map(edu => ({
+      degree: isIt ? edu.degree_it : edu.degree_en,
+      school: isIt ? edu.school_it : edu.school_en,
+      period: edu.period, grade: edu.grade
+    })),
+    skillsPool: CV_BASE.skillsPool,
+    languages: isIt ? CV_BASE.languages_it : CV_BASE.languages_en
+  };
+
+  const prompt = `You are a CV keyword optimizer performing a SECOND PASS. An ATS scanner found keywords from the job description that are MISSING or only SEMANTICALLY matched in the CV. Your ONLY job: swap synonyms for the JD's exact wording. You are a find-and-replace engine, NOT a rewriter.
+
+OUTPUT LANGUAGE: ${langLabel}.
+
+=== GROUND TRUTH — ANNA'S REAL DATA ===
+This is the ONLY source of truth. Every fact in the output MUST trace back to this data.
+${JSON.stringify(cvData, null, 2)}
+
+=== CURRENT CV TO OPTIMIZE (first pass output) ===
+${JSON.stringify(generatedData, null, 2)}
+
+=== EXACT KEYWORDS ALREADY MATCHED (DO NOT REMOVE) ===
+These ${exactKws.length} terms are currently EXACT matches in the CV. You MUST preserve every single one of them verbatim. If incorporating a new keyword would remove or alter any of these, SKIP the new keyword instead.
+${JSON.stringify(exactKws)}
+
+=== KEYWORDS TO INCORPORATE ===
+
+MISSING (highest priority — use exact JD wording):
+${missingKws.join(", ") || "none"}
+
+SEMANTIC ONLY (concept present, wording differs — swap to exact JD term):
+${semanticKws.join(", ") || "none"}
+
+=== STRICT RULES (VIOLATION = FAILURE) ===
+
+RULE 0 — PRESERVE EXACT MATCHES (HIGHEST PRIORITY):
+- The CV currently contains exact matches for the keywords listed above. These MUST remain unchanged in the output.
+- When you swap a phrase to incorporate a new keyword, CHECK that you are not removing or altering any word from the "exact matches" list.
+- If a swap would destroy an existing exact match, DO NOT make that swap. Skip the new keyword instead.
+- The score must NEVER go down after optimization. Adding keywords while losing others defeats the purpose.
+
+RULE 1 — SYNONYM SWAP ONLY:
+You may ONLY replace a word/phrase with the JD keyword IF the original word/phrase means the same thing.
+- OK: "MS Office" → "pacchetto Office" (same tool, different name)
+- OK: "documentazione di processo" → "normativa interna" (IF the original bullet was about internal documentation)
+- FORBIDDEN: Adding "analista organizzativo" to a bullet that was about financial advisory — that's invention.
+- FORBIDDEN: Changing the meaning of a sentence to fit a keyword.
+
+RULE 2 — FACTS ARE IMMUTABLE:
+- Do NOT change what Anna did, where she worked, what tools she used, or any achievement.
+- Do NOT add projects, clients, metrics, skills, or responsibilities not in the GROUND TRUTH data.
+- Do NOT add skills not in the skillsPool array.
+- If a keyword describes something Anna never did (e.g., "SAP", "RPA", "change management"), SKIP IT.
+
+RULE 3 — COMPETENCIES LOCKED TO SKILLSPOOL:
+- Competencies can ONLY be swapped with other items from the skillsPool.
+- Do NOT create new competency labels.
+
+RULE 4 — SKILLS LINE LOCKED TO SKILLSPOOL:
+- Skills line can ONLY contain items from the skillsPool.
+- You may change the display name to match JD wording (e.g., "MS Office" → "Pacchetto Office") but the underlying skill must exist in the pool.
+
+RULE 5 — MINIMAL CHANGES:
+- Change as LITTLE as possible. If a keyword cannot be incorporated with a simple word swap, SKIP IT.
+- Do NOT rewrite entire sentences. Do NOT restructure bullets.
+- Preserve the exact same number of bullets (4 KPMG, 2 M&A).
+- Each bullet MUST remain max 230 characters.
+
+RULE 6 — SKIP HONESTLY:
+- If a keyword genuinely doesn't apply to Anna's experience, do NOT force it in.
+- It is BETTER to skip a keyword than to distort the CV.
+- In the changes array, you may add {"where": "skipped", "before": "", "after": "", "keyword": "term", "reason": "not applicable to candidate's experience"} for skipped keywords.
+
+=== SELF-CHECK ===
+Before outputting, for EACH change verify:
+1. The new wording means the SAME thing as the old wording.
+2. The underlying fact exists in the GROUND TRUTH data.
+3. No new skills, achievements, or responsibilities were added.
+If any check fails, REVERT that change.
+
+=== OUTPUT ===
+
+Return ONLY valid JSON (no markdown, no backticks):
+{
+  "companyName": "...",
+  "roleTitle": "...",
+  "headline": "...",
+  "summary": "...",
+  "competencies": [...],
+  "experience": [{"bullets": [...]}, {"bullets": [...]}],
+  "skills": "...",
+  "changes": [
+    {"where": "summary|headline|bullet N|competencies|skills|skipped", "before": "original phrase", "after": "modified phrase", "keyword": "JD keyword incorporated", "reason": "optional, for skipped"}
+  ]
+}`;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + API_KEY,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://cv-generator.local",
+        "X-Title": "CV ATS Optimizer"
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 4096,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("API Error " + response.status);
+    }
+
+    const data = await response.json();
+    let content = data.choices[0].message.content;
+    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) content = jsonMatch[1];
+
+    const optimized = JSON.parse(content.trim());
+    const changes = optimized.changes || [];
+    delete optimized.changes; // don't store changes in generatedData
+    generatedData = optimized;
+    renderCV();
+
+    // Close tooltip
+    document.getElementById("ats-tooltip").classList.remove("visible");
+
+    // Show changelog
+    showOptimizationChanges(changes);
+
+    // Re-score after a moment to let render complete
+    setTimeout(renderATSScore, 300);
+
+  } catch (err) {
+    console.error("ATS optimization failed:", err);
+    if (btn) { btn.textContent = "Errore — riprova"; btn.disabled = false; }
+  }
+}
+
+function showOptimizationChanges(changes) {
+  if (!changes || changes.length === 0) return;
+
+  // Save changes in memory
+  lastChanges = changes;
+
+  // Show the toggle button in the preview bar
+  const wrapper = document.getElementById("changes-wrapper");
+  const changeBtn = document.getElementById("btn-show-changes");
+  if (wrapper) wrapper.style.display = "";
+  if (changeBtn) changeBtn.textContent = `Modifiche ATS (${changes.length})`;
+
+  // Build and show the panel
+  renderChangelogPanel();
+}
+
+function renderChangelogPanel() {
+  if (!lastChanges || lastChanges.length === 0) return;
+
+  // Remove existing panel if present
+  const existing = document.getElementById("ats-changelog");
+  if (existing) existing.remove();
+
+  const panel = document.createElement("div");
+  panel.id = "ats-changelog";
+  panel.style.cssText = "position:absolute;top:100%;left:0;width:380px;max-height:70vh;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.15);z-index:300;font-family:Calibri,sans-serif;font-size:9.5pt;margin-top:6px;";
+
+  let html = `
+    <div style="padding:14px 16px 10px;border-bottom:1.5px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+      <strong style="color:#0d7377;font-size:10.5pt;">Modifiche ATS (${lastChanges.length})</strong>
+      <button onclick="toggleChangelog()" style="border:none;background:none;font-size:18px;cursor:pointer;color:#718096;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:10px 16px 14px;">`;
+
+  lastChanges.forEach((c, i) => {
+    const whereLabel = c.where || "?";
+    const keyword = c.keyword ? `<span style="display:inline-block;padding:0 5px;border-radius:3px;background:#e6f7f7;color:#0d7377;font-size:8pt;font-weight:600;margin-left:4px;">${c.keyword}</span>` : "";
+    html += `
+      <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f7fafc;">
+        <div style="font-size:8pt;color:#718096;margin-bottom:3px;">${i + 1}. <strong style="color:#4a5568;">${whereLabel}</strong>${keyword}</div>
+        ${c.before ? `<div style="background:#fed7d7;color:#9b2c2c;padding:4px 8px;border-radius:4px;font-size:8.5pt;margin-bottom:3px;text-decoration:line-through;">${c.before}</div>` : ""}
+        ${c.after ? `<div style="background:#c6f6d5;color:#276749;padding:4px 8px;border-radius:4px;font-size:8.5pt;">${c.after}</div>` : ""}
+      </div>`;
+  });
+
+  html += `</div>`;
+  panel.innerHTML = html;
+  document.getElementById("changes-wrapper").appendChild(panel);
+}
+
+function toggleChangelog() {
+  const panel = document.getElementById("ats-changelog");
+  if (panel) {
+    panel.remove(); // hide
+  } else if (lastChanges) {
+    renderChangelogPanel(); // show from memory
+  }
+}
+
+// ===== EDIT MODE =====
+let editMode = false;
+
+function toggleEditMode() {
+  editMode = !editMode;
+  const container = document.getElementById("cv-container");
+  const btn = document.getElementById("btn-edit");
+  const banner = document.getElementById("edit-banner");
+
+  if (editMode) {
+    // Enable editing
+    container.classList.add("editing");
+    btn.classList.add("active");
+    btn.textContent = "💾 Salva";
+    banner.classList.add("visible");
+
+    // Make editable elements contenteditable
+    container.querySelectorAll("[data-field]").forEach(el => {
+      el.setAttribute("contenteditable", "true");
+      el.setAttribute("spellcheck", "true");
+    });
+  } else {
+    // Save and disable editing
+    syncEditsToData();
+    container.classList.remove("editing");
+    btn.classList.remove("active");
+    btn.textContent = "✏️ Modifica";
+    banner.classList.remove("visible");
+
+    container.querySelectorAll("[contenteditable]").forEach(el => {
+      el.removeAttribute("contenteditable");
+      el.removeAttribute("spellcheck");
+    });
+
+    // Re-score ATS with updated text
+    setTimeout(renderATSScore, 300);
+  }
+}
+
+function syncEditsToData() {
+  if (!generatedData) return;
+  const container = document.getElementById("cv-container");
+
+  container.querySelectorAll("[data-field]").forEach(el => {
+    const field = el.getAttribute("data-field");
+    const text = el.innerText.trim();
+
+    if (field === "headline") {
+      generatedData.headline = text;
+    } else if (field === "summary") {
+      generatedData.summary = text;
+    } else if (field === "skills") {
+      generatedData.skills = text;
+    } else if (field.startsWith("comp-")) {
+      const idx = parseInt(field.split("-")[1]);
+      if (generatedData.competencies && idx < generatedData.competencies.length) {
+        generatedData.competencies[idx] = text;
+      }
+    } else if (field.startsWith("exp-")) {
+      const parts = field.split("-");
+      const expIdx = parseInt(parts[1]);
+      const bulletIdx = parseInt(parts[2]);
+      if (generatedData.experience && generatedData.experience[expIdx] &&
+          generatedData.experience[expIdx].bullets && bulletIdx < generatedData.experience[expIdx].bullets.length) {
+        generatedData.experience[expIdx].bullets[bulletIdx] = text;
+      }
+    }
+  });
+}
+
+// Exit edit mode before print/download
+
+function printCV() {
+  if (editMode) toggleEditMode(); // save first
+  window.print();
+}
+
+function downloadCV() {
+  if (editMode) toggleEditMode(); // save first
+  if (!generatedData) return;
+
+  const lang = selectedLang;
+  const html = buildCVHTML();
+
+  const company = (generatedData.companyName || "Company").replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
+  const role = (generatedData.roleTitle || "Role").replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
+  const cleanName = `Anna_Marongiu_CV_${role}_${company}`;
+  const filename = `${cleanName}.html`;
+
+  const fullHTML = `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+<meta charset="UTF-8">
+<title>${cleanName}</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 10pt; }
+body {
+  font-family: "Calibri", "Segoe UI", Arial, sans-serif;
+  color: #2d3748;
+  background: #fff;
+  line-height: 1.4;
+  margin: 0;
+  width: 210mm;
+}
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .cv-header { background: linear-gradient(135deg, #062e30 0%, #0a5c5f 50%, #0d7377 100%) !important; }
+  .cv-badge { background: #e6f7f7 !important; }
+  .cv-body { break-before: avoid; }
+  .cv-exp-item { break-inside: avoid; }
+}
+.cv-header {
+  background: linear-gradient(135deg, #062e30 0%, #0a5c5f 50%, #0d7377 100%);
+  color: #fff;
+  padding: 10mm 12mm 7mm 12mm;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cv-photo {
+  width: 70px; height: 70px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.cv-header-text { flex: 1; }
+.cv-name { font-size: 20pt; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 1px; }
+.cv-headline { font-size: 11.5pt; font-weight: 400; opacity: 0.92; margin-bottom: 5px; }
+.cv-contacts { font-size: 9pt; opacity: 0.88; display: flex; gap: 16px; flex-wrap: wrap; }
+.cv-contacts span { white-space: nowrap; }
+.cv-body { padding: 5mm 12mm 5mm 12mm; }
+.cv-section { margin-bottom: 3mm; }
+.cv-section-title {
+  font-size: 11pt; font-weight: 700; color: #0d7377;
+  text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1.5px solid #0d7377;
+  padding-bottom: 1px; margin-bottom: 2mm;
+}
+.cv-summary { font-size: 9.5pt; line-height: 1.35; text-align: justify; }
+.cv-competencies { display: flex; flex-wrap: wrap; gap: 5px; }
+.cv-badge {
+  background: #e6f7f7; color: #0d7377;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 8.5pt; font-weight: 600;
+}
+.cv-exp-item { margin-bottom: 2mm; }
+.cv-exp-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
+.cv-exp-role { font-size: 10.5pt; font-weight: 700; color: #2d3748; }
+.cv-exp-period { font-size: 9pt; color: #718096; white-space: nowrap; }
+.cv-exp-company { font-size: 9.5pt; color: #4a5568; margin-bottom: 1.5mm; }
+.cv-exp-bullets { list-style: disc; padding-left: 5mm; font-size: 9.5pt; line-height: 1.35; }
+.cv-exp-bullets li { margin-bottom: 0.5mm; }
+.cv-edu-item { margin-bottom: 2mm; }
+.cv-edu-degree { font-size: 10pt; font-weight: 700; }
+.cv-edu-school { font-size: 9.5pt; color: #4a5568; }
+.cv-edu-detail { font-size: 9pt; color: #718096; }
+.cv-inline-list { font-size: 9.5pt; line-height: 1.35; }
+</style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+
+  const blob = new Blob([fullHTML], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
