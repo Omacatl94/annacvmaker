@@ -2,6 +2,11 @@ import { api } from './api.js';
 import { handleLogout } from './auth.js';
 import { getUser } from './app.js';
 import { createUploadZone } from './cv-upload.js';
+import { renderOnboarding } from './onboarding.js';
+import { renderGenerationStep, renderCVPreview, getSelectedStyle } from './cv-generator.js';
+import { renderATSPanel } from './ats-panel.js';
+import { renderEditorToolbar } from './cv-editor.js';
+import { renderExportButtons } from './cv-export.js';
 
 // ---------------------------------------------------------------------------
 // State
@@ -591,15 +596,126 @@ function renderActions(container) {
   continueBtn.style.marginLeft = '12px';
   continueBtn.textContent = 'Continua alla generazione';
   continueBtn.addEventListener('click', () => {
-    // Store the current form data as lastSavedProfile for the generation step
     lastSavedProfile = collectFormData();
-    showFeedback(section, 'Dati pronti per la generazione.', false);
+    const main = section.closest('.dashboard-main');
+    if (main) startGenerationFlow(main, lastSavedProfile);
   });
 
   section.appendChild(saveBtn);
   section.appendChild(continueBtn);
 
   container.appendChild(section);
+}
+
+// ---------------------------------------------------------------------------
+// Generation flow — orchestrates JD input → onboarding → generation → preview + tools
+// ---------------------------------------------------------------------------
+
+function createBackButton() {
+  const btn = document.createElement('button');
+  btn.className = 'btn-secondary';
+  btn.style.marginBottom = '16px';
+  btn.textContent = '\u2190 Torna al profilo';
+  btn.addEventListener('click', () => renderDashboard(document.getElementById('app')));
+  return btn;
+}
+
+function startGenerationFlow(main, profile) {
+  main.textContent = '';
+  main.appendChild(createBackButton(main));
+
+  // Show generation step (JD input + lang/style picker)
+  // The "Genera" button triggers onboarding first, then generation
+  const genContainer = document.createElement('div');
+  main.appendChild(genContainer);
+
+  renderGenerationStep(genContainer, profile, (generatedResult, jobDescription) => {
+    showCVWithTools(main, profile, generatedResult, jobDescription);
+  });
+
+  // Add onboarding button before generate — user can analyze first
+  const onboardSection = document.createElement('div');
+  onboardSection.className = 'onboarding-trigger';
+  onboardSection.style.marginTop = '16px';
+
+  const onboardBtn = document.createElement('button');
+  onboardBtn.className = 'btn-secondary';
+  onboardBtn.textContent = 'Analisi strategica del CV (consigliato)';
+  onboardBtn.addEventListener('click', () => {
+    // Need JD to analyze — grab it from the textarea
+    const jdTextarea = genContainer.querySelector('.jd-textarea');
+    const jd = jdTextarea ? jdTextarea.value.trim() : '';
+    if (!jd) {
+      const msg = document.createElement('p');
+      msg.style.color = '#e53e3e';
+      msg.textContent = 'Inserisci prima la Job Description.';
+      onboardSection.appendChild(msg);
+      setTimeout(() => msg.remove(), 3000);
+      return;
+    }
+    // Get selected lang from the active lang button
+    const activeLangBtn = genContainer.querySelector('.lang-btn.active');
+    const lang = activeLangBtn && activeLangBtn.textContent === 'English' ? 'en' : 'it';
+
+    // Replace content with onboarding
+    const onboardContainer = document.createElement('div');
+    main.textContent = '';
+    main.appendChild(createBackButton(main));
+    main.appendChild(onboardContainer);
+
+    renderOnboarding(onboardContainer, profile, jd, lang, (updatedProfile) => {
+      // After onboarding, go back to generation with updated profile
+      lastSavedProfile = updatedProfile;
+      startGenerationFlow(main, updatedProfile);
+    });
+  });
+  onboardSection.appendChild(onboardBtn);
+
+  const hint = document.createElement('small');
+  hint.style.display = 'block';
+  hint.style.color = '#718096';
+  hint.style.marginTop = '4px';
+  hint.textContent = 'L\'AI analizzerà il tuo CV rispetto alla JD e ti suggerirà miglioramenti strategici.';
+  onboardSection.appendChild(hint);
+
+  genContainer.appendChild(onboardSection);
+}
+
+function showCVWithTools(main, profile, data, jobDescription) {
+  main.textContent = '';
+  main.appendChild(createBackButton(main));
+
+  // Editor toolbar (edit/save toggle)
+  const toolbarContainer = document.createElement('div');
+  main.appendChild(toolbarContainer);
+  renderEditorToolbar(toolbarContainer, profile, () => {
+    // After inline edit save, re-score ATS if panel is present
+    const existingAts = main.querySelector('.ats-panel');
+    if (existingAts) {
+      existingAts.textContent = '';
+      renderATSPanel(existingAts, profile, jobDescription, (optimizedData) => {
+        renderCVPreview(previewContainer, profile, optimizedData, getSelectedStyle());
+      });
+    }
+  });
+
+  // CV preview
+  const previewContainer = document.createElement('div');
+  previewContainer.className = 'cv-preview-wrapper';
+  main.appendChild(previewContainer);
+  renderCVPreview(previewContainer, profile, data, getSelectedStyle());
+
+  // Export buttons (download, print, save to DB)
+  const exportContainer = document.createElement('div');
+  main.appendChild(exportContainer);
+  renderExportButtons(exportContainer, profile);
+
+  // ATS scoring panel
+  const atsContainer = document.createElement('div');
+  main.appendChild(atsContainer);
+  renderATSPanel(atsContainer, profile, jobDescription, (optimizedData) => {
+    renderCVPreview(previewContainer, profile, optimizedData, getSelectedStyle());
+  });
 }
 
 // ---------------------------------------------------------------------------
