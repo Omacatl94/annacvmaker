@@ -1,6 +1,7 @@
 import { api } from './api.js';
 import { handleLogout } from './auth.js';
 import { getUser } from './app.js';
+import { createUploadZone } from './cv-upload.js';
 
 // ---------------------------------------------------------------------------
 // State
@@ -142,6 +143,38 @@ function renderProfileSelector(container) {
 function renderForm(container) {
   const formWrap = document.createElement('div');
   formWrap.className = 'cv-form-container';
+
+  // Upload zone (before personal info)
+  const uploadSection = document.createElement('div');
+  uploadSection.className = 'card';
+  const uploadTitle = document.createElement('h3');
+  uploadTitle.textContent = 'Carica CV esistente (opzionale)';
+  uploadSection.appendChild(uploadTitle);
+
+  const uploadZone = createUploadZone((parsedData) => {
+    // Pre-fill formData with parsed data
+    if (parsedData.personal) {
+      formData.personal = { ...formData.personal, ...parsedData.personal };
+    }
+    if (parsedData.experiences && parsedData.experiences.length > 0) {
+      formData.experiences = parsedData.experiences;
+    }
+    if (parsedData.education && parsedData.education.length > 0) {
+      formData.education = parsedData.education;
+    }
+    if (parsedData.skills && parsedData.skills.length > 0) {
+      formData.skills = parsedData.skills;
+    }
+    if (parsedData.languages && parsedData.languages.length > 0) {
+      formData.languages = parsedData.languages;
+    }
+    // Re-render the form with new data
+    const formContainer = formWrap.parentNode;
+    formWrap.remove();
+    renderForm(formContainer);
+  });
+  uploadSection.appendChild(uploadZone);
+  formWrap.appendChild(uploadSection);
 
   renderLabelSection(formWrap);
   renderPersonalSection(formWrap);
