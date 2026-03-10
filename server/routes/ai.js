@@ -84,12 +84,20 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
   });
 
   app.post('/optimize', async (req, reply) => {
-    const { generatedData, selectedKeywords, jobDescription, language, profile } = req.body;
-    if (!generatedData || !selectedKeywords || !jobDescription) {
-      return reply.code(400).send({ error: 'generatedData, selectedKeywords, and jobDescription required' });
+    const { generatedData, jobDescription, language, profile,
+            selectedKeywords, missingKeywords, semanticKeywords, exactKeywords } = req.body;
+    if (!generatedData || !jobDescription) {
+      return reply.code(400).send({ error: 'generatedData and jobDescription required' });
     }
 
-    const prompt = buildOptimizePrompt(generatedData, selectedKeywords, jobDescription, language || 'it', profile);
+    // Accept either unified selectedKeywords or split missing/semantic/exact arrays
+    const keywords = selectedKeywords || {
+      missing: missingKeywords || [],
+      semantic: semanticKeywords || [],
+      exact: exactKeywords || [],
+    };
+
+    const prompt = buildOptimizePrompt(generatedData, keywords, jobDescription, language || 'it', profile);
     const result = await openrouter.generate([{ role: 'user', content: prompt }]);
     try {
       reply.send(parseJSON(result));

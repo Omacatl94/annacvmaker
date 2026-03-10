@@ -458,8 +458,8 @@ async function runOptimize(btn, kwContainer, changelogArea, resultsArea, atsResu
       exactKeywords,
     });
 
-    // Update generated data
-    const newData = optimized.data || optimized;
+    // Update generated data — server returns { updatedData, changes, skipped }
+    const newData = optimized.updatedData || optimized.data || optimized;
     setGeneratedData(newData);
 
     // Re-render CV preview
