@@ -56,7 +56,7 @@ Domain split:
 - **Current:** `ORDER BY u.${sortCol} ${sortDir}` — string interpolation in SQL. There IS an allowlist (`['created_at', 'email', 'name', 'credits'].includes(sort)`) but the pattern is fragile — a future edit could introduce injection by expanding the list carelessly.
 - **Fix:** Object mapping `{ created_at: 'u.created_at', email: 'u.email', ... }` → lookup column from map, never interpolate user input. Defense-in-depth.
 
-### 2.5 Header injection via Content-Disposition filename
+### 2.3 Header injection via Content-Disposition filename
 - **Current:** `POST /api/cv/export-pdf` uses `filename` from request body directly in `Content-Disposition` header
 - An attacker can inject `\r\n` to add arbitrary response headers (HTTP response splitting)
 - **Fix:** Sanitize filename — strip non-alphanumeric chars (except `-`, `_`, `.`), or use a static default
@@ -130,6 +130,7 @@ Rate limits:
 |-------|-----|--------|
 | Global | 100 | 1 min |
 | Auth (`/api/auth/*`) | 10 | 1 min |
+| Guest (`/api/auth/guest`) | 3 | 1 min |
 | AI heavy (generate, optimize, cover-letter, parse-cv, analyze) | 5 | 1 min |
 | AI light (ats-score, fit-score, extract-keywords) | 15 | 1 min |
 | Upload | 10 | 1 min |
