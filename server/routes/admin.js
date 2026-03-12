@@ -229,4 +229,56 @@ export default async function adminRoutes(app) {
 
     reply.send({ errors: rows });
   });
+
+  // ── Waitlist management ──
+  app.get('/waitlist', async (req, reply) => {
+    const { search, limit, offset } = req.query;
+    const lim = Math.min(parseInt(limit) || 50, 200);
+    const off = parseInt(offset) || 0;
+
+    let where = 'WHERE 1=1';
+    const params = [];
+    if (search) {
+      params.push(`%${search}%`);
+      where += ` AND w.email ILIKE $${params.length}`;
+    }
+
+    params.push(lim, off);
+
+    const { rows } = await app.db.query(`
+      SELECT w.*, (w.invited_at IS NOT NULL) as invited
+      FROM waitlist w ${where}
+      ORDER BY w.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `, params);
+
+    const countRes = await app.db.query(
+      `SELECT COUNT(*) as n FROM waitlist w ${where}`,
+      search ? [`%${search}%`] : []
+    );
+
+    reply.send({ waitlist: rows, total: +countRes.rows[0].n });
+  });
+
+  app.post('/waitlist/:id/invite', async (req, reply) => {
+    const { id } = req.params;
+
+    const wl = await app.db.query('SELECT id, email, invited_at FROM waitlist WHERE id = $1', [id]);
+    if (!wl.rows[0]) return reply.code(404).send({ error: 'Waitlist entry not found' });
+    if (wl.rows[0].invited_at) return reply.code(409).send({ error: 'Already invited' });
+
+    const { generateAdminInvite } = await import('../services/invites.js');
+    const code = await generateAdminInvite(app.db);
+
+    await app.db.query('UPDATE waitlist SET invited_at = NOW() WHERE id = $1', [id]);
+
+    await app.db.query(
+      `INSERT INTO audit_logs (user_id, action, ip, user_agent, metadata)
+       VALUES ($1, 'admin_waitlist_invite', $2, $3, $4)`,
+      [req.user.id, req.ip, req.headers['user-agent']?.substring(0, 500) || null,
+       JSON.stringify({ waitlistId: id, email: wl.rows[0].email, code })]
+    );
+
+    reply.send({ ok: true, code, email: wl.rows[0].email });
+  });
 }
