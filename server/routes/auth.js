@@ -101,6 +101,7 @@ export default async function authRoutes(app) {
       return reply.redirect('/');
     } catch (err) {
       req.log.error(err);
+      auditLog(req, null, 'oauth_failed', { provider: 'google', error: err.message?.substring(0, 200) });
       return reply.redirect('/?error=auth_failed');
     }
   });
@@ -127,19 +128,21 @@ export default async function authRoutes(app) {
       return reply.redirect('/');
     } catch (err) {
       req.log.error(err);
+      auditLog(req, null, 'oauth_failed', { provider: 'linkedin', error: err.message?.substring(0, 200) });
       return reply.redirect('/?error=auth_failed');
     }
   });
 
   // Dev-only login (bypasses OAuth for local testing)
-  app.post('/dev-login', async (req, reply) => {
-    if (process.env.NODE_ENV === 'production') return reply.code(404).send({ error: 'Not found' });
-    const { email, name } = req.body || {};
-    if (!email) return reply.code(400).send({ error: 'email required' });
-    const { user } = await findOrCreateUser({ email, name: name || 'Test User' });
-    setAuthCookie(reply, user, false);
-    reply.send({ user: { id: user.id, email: user.email, name: user.name } });
-  });
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/dev-login', async (req, reply) => {
+      const { email, name } = req.body || {};
+      if (!email) return reply.code(400).send({ error: 'email required' });
+      const { user } = await findOrCreateUser({ email, name: name || 'Test User' });
+      setAuthCookie(reply, user, false);
+      reply.send({ user: { id: user.id, email: user.email, name: user.name } });
+    });
+  }
 
   app.post('/guest', {
     config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
@@ -213,6 +216,7 @@ export default async function authRoutes(app) {
   // GDPR data export
   app.get('/me/export', async (req, reply) => {
     if (!req.user?.id) return reply.code(401).send({ error: 'Not authenticated' });
+    auditLog(req, req.user.id, 'gdpr_export');
     const uid = req.user.id;
 
     const [userRes, profilesRes, generatedRes] = await Promise.all([
@@ -238,6 +242,7 @@ export default async function authRoutes(app) {
 
   app.delete('/me', async (req, reply) => {
     if (!req.user?.id) return reply.code(401).send({ error: 'Not authenticated' });
+    auditLog(req, req.user.id, 'account_delete');
     await app.db.query('DELETE FROM users WHERE id = $1', [req.user.id]);
     clearAuthCookie(reply);
     reply.send({ ok: true });
