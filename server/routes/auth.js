@@ -2,13 +2,18 @@ import crypto from 'node:crypto';
 import { config } from '../config.js';
 import { sign } from '../services/jwt.js';
 import { google, linkedin } from '../services/oauth.js';
+import { generateInviteCodes } from '../services/invites.js';
 
 const COOKIE_NAME = '__Host-jh_token';
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_AGE_S = 7 * 24 * 3600;
 
 function setAuthCookie(reply, user, guest = false) {
-  const token = sign({ id: user.id, guest, role: user.role || 'user' }, config.jwtSecret, MAX_AGE_S);
+  const token = sign(
+    { id: user.id, guest, role: user.role || 'user', status: user.status || 'active' },
+    config.jwtSecret,
+    MAX_AGE_S
+  );
   reply.setCookie(COOKIE_NAME, token, {
     path: '/',
     httpOnly: true,
@@ -71,12 +76,21 @@ export default async function authRoutes(app) {
       }
       return { user, isNew: false };
     }
+    // New user: status depends on invite-only mode
+    const status = config.inviteOnly ? 'waitlist' : 'active';
     const referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
     const result = await app.db.query(
-      'INSERT INTO users (email, name, google_id, linkedin_id, referral_code) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [email, name, googleId || null, linkedinId || null, referralCode]
+      'INSERT INTO users (email, name, google_id, linkedin_id, referral_code, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [email, name, googleId || null, linkedinId || null, referralCode, status]
     );
-    return { user: result.rows[0], isNew: true };
+    const user = result.rows[0];
+
+    // If not invite-only (open registration), generate invite codes immediately
+    if (!config.inviteOnly && user.invite_batch === 0) {
+      await generateInviteCodes(app.db, user.id, 1).catch(() => {});
+    }
+
+    return { user, isNew: true };
   }
 
   app.get('/google', {
@@ -147,6 +161,9 @@ export default async function authRoutes(app) {
   app.post('/guest', {
     config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
   }, async (req, reply) => {
+    if (config.inviteOnly) {
+      return reply.code(403).send({ error: 'invite_required' });
+    }
     const guestId = crypto.randomUUID();
     const guestEmail = `guest-${guestId.slice(0, 8)}@anonymous`;
     const result = await app.db.query(
@@ -163,7 +180,7 @@ export default async function authRoutes(app) {
     if (!req.user?.id) return reply.send({ user: null });
     const result = await app.db.query(
       `SELECT u.id, u.email, u.name, u.phone, u.location, u.preferences,
-              u.role, u.google_id, u.linkedin_id, u.created_at,
+              u.role, u.status, u.google_id, u.linkedin_id, u.created_at,
               (SELECT cp.photo_path FROM cv_profiles cp WHERE cp.user_id = u.id ORDER BY cp.updated_at DESC LIMIT 1) AS photo_path
        FROM users u WHERE u.id = $1`,
       [req.user.id]
@@ -181,6 +198,7 @@ export default async function authRoutes(app) {
         createdAt: user.created_at,
         guest: isGuest,
         role: user.role || 'user',
+        status: user.status || 'active',
       },
     });
   });
@@ -299,5 +317,62 @@ export default async function authRoutes(app) {
       creditsEarned: parseInt(stats.rows[0]?.credits || 0),
       maxReferrals: 20,
     });
+  });
+
+  // ── Invite system ──
+
+  app.post('/claim-invite', async (req, reply) => {
+    // Note: this endpoint requires auth but NOT active status (waitlisted users can call it)
+    const userId = req.user?.id;
+    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
+
+    const { code } = req.body;
+    if (!code) return reply.code(400).send({ error: 'code required' });
+
+    const { claimInvite } = await import('../services/invites.js');
+    try {
+      const result = await claimInvite(app.db, userId, code);
+
+      // Re-issue JWT with updated status
+      const userRes = await app.db.query('SELECT * FROM users WHERE id = $1', [userId]);
+      if (userRes.rows[0]) {
+        setAuthCookie(reply, userRes.rows[0], false);
+      }
+
+      reply.send(result);
+    } catch (err) {
+      reply.code(err.statusCode || 500).send({ error: err.message });
+    }
+  });
+
+  app.get('/invite-stats', async (req, reply) => {
+    const userId = req.user?.id;
+    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
+
+    const { getInviteStats } = await import('../services/invites.js');
+    const stats = await getInviteStats(app.db, userId);
+    reply.send(stats);
+  });
+
+  app.post('/waitlist', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    schema: {
+      body: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', format: 'email', maxLength: 255 },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { email } = req.body;
+    try {
+      await app.db.query(
+        'INSERT INTO waitlist (email) VALUES ($1) ON CONFLICT (email) DO NOTHING',
+        [email.toLowerCase().trim()]
+      );
+    } catch { /* ignore */ }
+    reply.send({ ok: true });
   });
 }
