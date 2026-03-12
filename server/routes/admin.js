@@ -27,6 +27,60 @@ export default async function adminRoutes(app) {
     });
   });
 
+  // ── Invite Stats ──
+  app.get('/stats/invites', async (req, reply) => {
+    const [
+      totalCodes, claimedCodes, activatedCodes,
+      waitlistSize, waitlistInvited,
+      activeUsers, waitlistUsers,
+      avgActivation, batch2Users,
+      recentInvites
+    ] = await Promise.all([
+      app.db.query('SELECT COUNT(*) as n FROM invite_codes'),
+      app.db.query('SELECT COUNT(*) as n FROM invite_codes WHERE claimed_by IS NOT NULL'),
+      app.db.query('SELECT COUNT(*) as n FROM invite_codes WHERE activated = true'),
+      app.db.query('SELECT COUNT(*) as n FROM waitlist'),
+      app.db.query('SELECT COUNT(*) as n FROM waitlist WHERE invited_at IS NOT NULL'),
+      app.db.query(`SELECT COUNT(*) as n FROM users WHERE status = 'active' AND email NOT LIKE '%@anonymous'`),
+      app.db.query(`SELECT COUNT(*) as n FROM users WHERE status = 'waitlist'`),
+      app.db.query(`SELECT AVG(EXTRACT(EPOCH FROM (ic.activated_at - ic.claimed_at)) / 3600) as hours FROM invite_codes ic WHERE ic.activated = true AND ic.claimed_at IS NOT NULL`),
+      app.db.query('SELECT COUNT(*) as n FROM users WHERE invite_batch = 2'),
+      // Recent invite activity
+      app.db.query(`
+        SELECT ic.code, ic.claimed_at, ic.activated, ic.activated_at,
+               owner.name as owner_name, owner.email as owner_email,
+               invitee.name as invitee_name, invitee.email as invitee_email
+        FROM invite_codes ic
+        LEFT JOIN users owner ON ic.owner_id = owner.id
+        LEFT JOIN users invitee ON ic.claimed_by = invitee.id
+        WHERE ic.claimed_by IS NOT NULL
+        ORDER BY ic.claimed_at DESC
+        LIMIT 20
+      `),
+    ]);
+
+    const total = +totalCodes.rows[0].n;
+    const claimed = +claimedCodes.rows[0].n;
+    const activated = +activatedCodes.rows[0].n;
+
+    // k = activated / activeUsers (how many new active users per existing active user)
+    const active = +activeUsers.rows[0].n;
+    const k = active > 0 ? +(activated / active).toFixed(2) : 0;
+
+    reply.send({
+      codes: { total, claimed, activated, available: total - claimed },
+      rates: {
+        claimRate: total > 0 ? +(claimed / total * 100).toFixed(1) : 0,
+        activationRate: claimed > 0 ? +(activated / claimed * 100).toFixed(1) : 0,
+        k,
+      },
+      waitlist: { total: +waitlistSize.rows[0].n, invited: +waitlistInvited.rows[0].n },
+      users: { active, waitlist: +waitlistUsers.rows[0].n, batch2: +batch2Users.rows[0].n },
+      avgActivationHours: avgActivation.rows[0].hours ? +Number(avgActivation.rows[0].hours).toFixed(1) : null,
+      recentClaims: recentInvites.rows,
+    });
+  });
+
   // ── Timeseries ──
   app.get('/stats/timeseries', async (req, reply) => {
     const { metric, from, to } = req.query;

@@ -159,6 +159,9 @@ async function renderDashboardPanel(container) {
     actionsRow.appendChild(inviteBtn);
     container.appendChild(actionsRow);
 
+    // Invite viral loop stats
+    await renderInviteStats(container);
+
     // Charts
     await renderTimeseriesChart(container, 'registrations', 'Registrazioni');
     await renderTimeseriesChart(container, 'revenue', 'Revenue (centesimi)');
@@ -169,6 +172,121 @@ async function renderDashboardPanel(container) {
   } catch (err) {
     container.textContent = 'Errore: ' + err.message;
   }
+}
+
+// ── Invite Viral Loop Stats ──
+async function renderInviteStats(container) {
+  const section = document.createElement('div');
+  section.className = 'admin-chart-section';
+
+  const h3 = document.createElement('h3');
+  h3.textContent = 'Viral Loop';
+  section.appendChild(h3);
+
+  try {
+    const data = await api.adminInviteStats();
+
+    // KPI row for invite metrics
+    const grid = document.createElement('div');
+    grid.className = 'admin-kpi-grid';
+
+    const inviteKpis = [
+      { label: 'Codici totali', value: data.codes.total, sub: `${data.codes.available} disponibili` },
+      { label: 'Claimed', value: data.codes.claimed, sub: `${data.rates.claimRate}% claim rate` },
+      { label: 'Attivati', value: data.codes.activated, sub: `${data.rates.activationRate}% activation rate` },
+      { label: 'k (viral coeff)', value: data.rates.k, sub: data.rates.k >= 1 ? 'Crescita virale!' : 'Sotto soglia virale', warn: data.rates.k < 0.5 },
+      { label: 'Tempo medio attivazione', value: data.avgActivationHours ? `${data.avgActivationHours}h` : '—', sub: 'dalla claim al primo CV' },
+      { label: 'Batch 2 sbloccati', value: data.users.batch2, sub: 'utenti con 3/3 attivati' },
+      { label: 'Waitlist', value: data.waitlist.total, sub: `${data.waitlist.invited} invitati` },
+      { label: 'Utenti attivi', value: data.users.active, sub: `${data.users.waitlist} in attesa` },
+    ];
+
+    for (const kpi of inviteKpis) {
+      const card = document.createElement('div');
+      card.className = 'admin-kpi-card' + (kpi.warn ? ' warn' : '');
+
+      const label = document.createElement('div');
+      label.className = 'kpi-label';
+      label.textContent = kpi.label;
+      card.appendChild(label);
+
+      const value = document.createElement('div');
+      value.className = 'kpi-value';
+      value.textContent = kpi.value;
+      card.appendChild(value);
+
+      if (kpi.sub) {
+        const sub = document.createElement('div');
+        sub.className = 'kpi-sub';
+        sub.textContent = kpi.sub;
+        card.appendChild(sub);
+      }
+
+      grid.appendChild(card);
+    }
+    section.appendChild(grid);
+
+    // Recent claims table
+    if (data.recentClaims && data.recentClaims.length > 0) {
+      const tableTitle = document.createElement('h4');
+      tableTitle.textContent = 'Ultimi inviti usati';
+      tableTitle.style.marginTop = '16px';
+      section.appendChild(tableTitle);
+
+      const table = document.createElement('table');
+      table.className = 'admin-table';
+
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      for (const col of ['Codice', 'Invitante', 'Invitato', 'Claimed', 'Attivato']) {
+        const th = document.createElement('th');
+        th.textContent = col;
+        headerRow.appendChild(th);
+      }
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      for (const claim of data.recentClaims) {
+        const tr = document.createElement('tr');
+
+        const tdCode = document.createElement('td');
+        const codeEl = document.createElement('code');
+        codeEl.textContent = claim.code;
+        tdCode.appendChild(codeEl);
+        tr.appendChild(tdCode);
+
+        const tdOwner = document.createElement('td');
+        tdOwner.textContent = claim.owner_name || claim.owner_email || 'Admin';
+        tr.appendChild(tdOwner);
+
+        const tdInvitee = document.createElement('td');
+        tdInvitee.textContent = claim.invitee_name || claim.invitee_email || '—';
+        tr.appendChild(tdInvitee);
+
+        const tdClaimed = document.createElement('td');
+        tdClaimed.textContent = claim.claimed_at ? new Date(claim.claimed_at).toLocaleDateString('it-IT') : '—';
+        tr.appendChild(tdClaimed);
+
+        const tdActivated = document.createElement('td');
+        tdActivated.textContent = claim.activated ? '✓' : '—';
+        if (claim.activated) tdActivated.style.color = 'var(--color-accent)';
+        tr.appendChild(tdActivated);
+
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      section.appendChild(table);
+    }
+
+  } catch {
+    const err = document.createElement('p');
+    err.className = 'kpi-sub';
+    err.textContent = 'Errore nel caricamento invite stats.';
+    section.appendChild(err);
+  }
+
+  container.appendChild(section);
 }
 
 // ── Timeseries Chart (Canvas) ──
