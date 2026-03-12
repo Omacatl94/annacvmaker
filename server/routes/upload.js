@@ -21,7 +21,9 @@ const ALLOWED_CV_TYPES = [
 export default async function uploadRoutes(app) {
   app.addHook('preHandler', authGuard);
 
-  app.post('/photo', async (req, reply) => {
+  app.post('/photo', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
     const file = await req.file();
     if (!file) return reply.code(400).send({ error: 'No file uploaded' });
     if (!ALLOWED_PHOTO_TYPES.includes(file.mimetype)) {
@@ -34,7 +36,9 @@ export default async function uploadRoutes(app) {
     reply.send({ path: `/uploads/photos/${name}` });
   });
 
-  app.post('/cv-file', async (req, reply) => {
+  app.post('/cv-file', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
     const file = await req.file();
     if (!file) return reply.code(400).send({ error: 'No file uploaded' });
     if (!ALLOWED_CV_TYPES.includes(file.mimetype)) {

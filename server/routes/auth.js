@@ -79,7 +79,9 @@ export default async function authRoutes(app) {
     return { user: result.rows[0], isNew: true };
   }
 
-  app.get('/google', (req, reply) => {
+  app.get('/google', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, (req, reply) => {
     const state = crypto.randomBytes(32).toString('hex');
     setStateCookie(reply, state);
     reply.redirect(google.getAuthUrl(state));
@@ -103,7 +105,9 @@ export default async function authRoutes(app) {
     }
   });
 
-  app.get('/linkedin', (req, reply) => {
+  app.get('/linkedin', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, (req, reply) => {
     const state = crypto.randomBytes(32).toString('hex');
     setStateCookie(reply, state);
     reply.redirect(linkedin.getAuthUrl(state));
@@ -137,7 +141,9 @@ export default async function authRoutes(app) {
     reply.send({ user: { id: user.id, email: user.email, name: user.name } });
   });
 
-  app.post('/guest', async (req, reply) => {
+  app.post('/guest', {
+    config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
     const guestId = crypto.randomUUID();
     const guestEmail = `guest-${guestId.slice(0, 8)}@anonymous`;
     const result = await app.db.query(

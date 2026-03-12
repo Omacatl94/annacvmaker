@@ -1,5 +1,4 @@
 import { authGuard } from '../middleware/auth-guard.js';
-import { rateLimit } from '../middleware/rate-limit.js';
 import { creditGuard } from '../middleware/credits.js';
 import { openrouter } from '../services/openrouter.js';
 import { safePath } from '../utils/safe-path.js';
@@ -16,14 +15,14 @@ function parseJSON(raw) {
   return JSON.parse(jsonStr.trim());
 }
 
-// Rate limits: generation (expensive) is tighter than scoring (cheap)
-const aiHeavyLimit = rateLimit({ windowMs: 60000, max: 5 });
-const aiLightLimit = rateLimit({ windowMs: 60000, max: 15 });
+// Rate limit configs: generation (expensive) is tighter than scoring (cheap)
+const AI_HEAVY = { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } };
+const AI_LIGHT = { config: { rateLimit: { max: 15, timeWindow: '1 minute' } } };
 
 export default async function aiRoutes(app) {
   app.addHook('preHandler', authGuard);
 
-  app.post('/parse-cv', { preHandler: aiHeavyLimit }, async (req, reply) => {
+  app.post('/parse-cv', AI_HEAVY, async (req, reply) => {
     const { filePath } = req.body;
     if (!filePath) return reply.code(400).send({ error: 'filePath required' });
     const absPath = safePath(filePath);
@@ -59,7 +58,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     }
   });
 
-  app.post('/analyze', { preHandler: aiHeavyLimit }, async (req, reply) => {
+  app.post('/analyze', AI_HEAVY, async (req, reply) => {
     const { profile, jobDescription, language } = req.body;
     if (!profile || !jobDescription) return reply.code(400).send({ error: 'profile and jobDescription required' });
 
@@ -77,7 +76,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     }
   });
 
-  app.post('/fit-score', { preHandler: aiLightLimit }, async (req, reply) => {
+  app.post('/fit-score', AI_LIGHT, async (req, reply) => {
     const { profile, jobDescription, language } = req.body;
     if (!profile || !jobDescription) return reply.code(400).send({ error: 'profile and jobDescription required' });
 
@@ -95,7 +94,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     }
   });
 
-  app.post('/extract-keywords', { preHandler: aiLightLimit }, async (req, reply) => {
+  app.post('/extract-keywords', AI_LIGHT, async (req, reply) => {
     const { jobDescription, language } = req.body;
     if (!jobDescription) return reply.code(400).send({ error: 'jobDescription required' });
 
@@ -113,7 +112,22 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     }
   });
 
-  app.post('/generate', { preHandler: [aiHeavyLimit, creditGuard('cv_generation')] }, async (req, reply) => {
+  app.post('/generate', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    preHandler: [creditGuard('cv_generation')],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['profile', 'jobDescription'],
+        properties: {
+          profile: { type: 'object' },
+          jobDescription: { type: 'string', maxLength: 10000 },
+          language: { type: 'string', maxLength: 10 },
+          targetKeywords: {},
+        },
+      },
+    },
+  }, async (req, reply) => {
     const { profile, jobDescription, language, targetKeywords } = req.body;
     if (!profile || !jobDescription) return reply.code(400).send({ error: 'profile and jobDescription required' });
 
@@ -134,7 +148,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     }
   });
 
-  app.post('/ats-score', { preHandler: aiLightLimit }, async (req, reply) => {
+  app.post('/ats-score', AI_LIGHT, async (req, reply) => {
     const { cvText, jobDescription, language, lockedKeywords } = req.body;
     if (!cvText || !jobDescription) return reply.code(400).send({ error: 'cvText and jobDescription required' });
 
@@ -152,7 +166,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     }
   });
 
-  app.post('/optimize', { preHandler: aiHeavyLimit }, async (req, reply) => {
+  app.post('/optimize', AI_HEAVY, async (req, reply) => {
     const { generatedData, jobDescription, language, profile,
             selectedKeywords, missingKeywords, semanticKeywords, exactKeywords } = req.body;
     if (!generatedData || !jobDescription) {
@@ -180,7 +194,10 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     }
   });
 
-  app.post('/cover-letter', { preHandler: [aiHeavyLimit, creditGuard('cover_letter')] }, async (req, reply) => {
+  app.post('/cover-letter', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    preHandler: [creditGuard('cover_letter')],
+  }, async (req, reply) => {
     const { profile, jobDescription, generatedData, language } = req.body;
     if (!profile || !jobDescription || !generatedData) {
       return reply.code(400).send({ error: 'profile, jobDescription, and generatedData required' });
