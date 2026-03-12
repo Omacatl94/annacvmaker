@@ -28,7 +28,7 @@ Domain split:
 - Rename `jh_token` → `__Host-jh_token`
   - Requires: `secure: true`, `path: '/'`, NO `domain` attribute
   - Prevents cookie injection from subdomains
-- `sameSite: 'strict'` (was `lax`)
+- `sameSite: 'lax'` (keep as-is — `strict` breaks OAuth redirects since the callback comes from an external origin)
 - `secure: true` always (dev uses a separate bypass flag, not weakened cookies)
 - New env var `COOKIE_SECURE=true` (default), set to `false` only for local dev
 
@@ -36,10 +36,15 @@ Domain split:
 - Add `iss: 'jobhacker'` and `aud: 'app.jobhacker.it'` to JWT payload in `sign()`
 - Verify both claims in `verify()` — reject tokens with wrong issuer/audience
 - Prevents token confusion across services
+- **Migration note:** Adding `iss`/`aud` verification will invalidate all existing tokens. All users will be logged out once. Acceptable for current user base size.
 
 ### 1.4 Domain configuration
 - New env var `APP_ORIGIN=https://app.jobhacker.it`
 - Used for: CORS whitelist, OAuth callback URLs, Stripe redirect URLs, PDF `<base href>`
+
+### 1.5 Guest endpoint abuse prevention
+- `POST /api/auth/guest` creates a new DB row per call with no rate limit — attacker can flood the users table
+- **Fix:** Apply aggressive rate limit (3 req/min per IP) on the guest endpoint
 
 **Files modified:** `server/services/jwt.js`, `server/routes/auth.js`, `server/services/oauth.js`, `server/config.js`
 
@@ -47,30 +52,35 @@ Domain split:
 
 ## Section 2: Injection & SSRF
 
-### 2.1 SQL injection in admin `/users`
-- **Current:** `ORDER BY u.${sortCol} ${sortDir}` — string interpolation in SQL
-- **Fix:** Object mapping `{ created_at: 'u.created_at', email: 'u.email', ... }` → lookup column from map, never interpolate user input
+### 2.1 SQL column interpolation in admin `/users`
+- **Current:** `ORDER BY u.${sortCol} ${sortDir}` — string interpolation in SQL. There IS an allowlist (`['created_at', 'email', 'name', 'credits'].includes(sort)`) but the pattern is fragile — a future edit could introduce injection by expanding the list carelessly.
+- **Fix:** Object mapping `{ created_at: 'u.created_at', email: 'u.email', ... }` → lookup column from map, never interpolate user input. Defense-in-depth.
 
-### 2.2 Path traversal in `/api/ai/parse-cv`
-- **Current:** `filePath` from request body passed to `readFileSync(join(__dirname, '../..', filePath))`
-- **Fix:** Resolve to absolute path, then `startsWith` check against `uploads/` directory
-- Reject any path containing `..` or that resolves outside uploads
+### 2.5 Header injection via Content-Disposition filename
+- **Current:** `POST /api/cv/export-pdf` uses `filename` from request body directly in `Content-Disposition` header
+- An attacker can inject `\r\n` to add arbitrary response headers (HTTP response splitting)
+- **Fix:** Sanitize filename — strip non-alphanumeric chars (except `-`, `_`, `.`), or use a static default
 
-### 2.3 Path traversal in `openrouter.parseDocument`
-- Same issue as 2.2 — `filePath` used in `readFileSync(absPath)` without validation
-- Same fix: validate resolved path is within `uploads/`
+### 2.2 Path traversal in file parsing
+- **Current:** `filePath` from request body passed through `openrouter.parseDocument()` which calls `readFileSync(join(__dirname, '../..', filePath))` — no validation
+- **Fix:** Single validation function `safePath(filePath)` in a shared utility:
+  1. Resolve to absolute path via `path.resolve(uploadsBase, filePath)`
+  2. Verify result `startsWith(uploadsBase)` — reject otherwise
+  3. Apply validation at the route level (`/api/ai/parse-cv`) before calling the service
+  - The service (`openrouter.parseDocument`) receives an already-validated absolute path
 
 ### 2.4 SSRF via PDF export
 - **Current:** Arbitrary HTML passed to Chromium for rendering
 - **Fix (defense in depth):**
-  1. Sanitize HTML with DOMPurify (already a dependency) before passing to Chromium
+  1. Sanitize HTML with DOMPurify + jsdom (both already in dependencies) before passing to Chromium
+     - DOMPurify requires a DOM environment on the server — use `jsdom` to create a `window` object
      - Remove `<script>`, `<iframe>`, `<object>`, `<embed>`, `<form>`, `<meta>` tags
      - Allow only: standard text/layout tags, `<img>` with `src` matching local origin or `data:` URIs
   2. Chromium launch args: add `--host-resolver-rules="MAP * ~NOTFOUND, EXCLUDE localhost"` to block outbound requests to internal IPs
      - Override to allow only LOCAL_ORIGIN
   3. Strip any `<link>` with external `href` (already partially done)
 
-**Files modified:** `server/routes/admin.js`, `server/routes/ai.js`, `server/services/openrouter.js`, `server/services/pdf-export.js`
+**Files modified:** `server/routes/admin.js`, `server/routes/ai.js`, `server/routes/cv.js`, `server/services/openrouter.js`, `server/services/pdf-export.js`
 
 ---
 
@@ -128,12 +138,14 @@ Rate limits:
 Key: `req.user?.id || req.ip`
 Response: 429 with `Retry-After` header
 
+**Implementation pattern:** Register `@fastify/rate-limit` globally with the default 100/min limit. Per-route overrides via `config.rateLimit` in route options (native Fastify rate-limit feature). This replaces the current `rateLimit()` middleware import in ai.js and the `rate-limit.js` file entirely.
+
 ### 4.2 Input validation via Fastify JSON Schema
 Add `schema` option to critical routes:
 
 - `POST /api/ai/generate` — `profile`: object required, `jobDescription`: string max 10000 chars
 - `POST /api/cv/export-pdf` — `html`: string max 500KB, `filename`: string pattern `^[a-zA-Z0-9_-]+\.pdf$`
-- `PUT /api/auth/me` — `name`: string max 200, `phone`: string max 30, `location`: string max 200
+- `PUT /api/auth/me` — `name`: string max 200, `phone`: string max 30, `location`: string max 200, `preferences`: object max 5KB
 - `POST /api/payments/create-checkout` — `tier`: enum of valid tier keys
 
 ### 4.3 Upload magic bytes validation
@@ -175,10 +187,11 @@ Add audit log entries for:
 - Account deletion (`DELETE /api/auth/me`)
 
 ### 5.5 PostgreSQL SSL
-- Add `ssl` config: `{ rejectUnauthorized: true }` when `NODE_ENV === 'production'`
+- Add `ssl` property to `config.db` in `server/config.js`: `ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false`
+- `server/db/connection.js` already passes `config.db` to `pg.Pool`, so no changes needed there
 - Prevents MITM on database connections
 
-**Files modified:** `Dockerfile`, `server/index.js`, `server/routes/auth.js`, `server/routes/ai.js`, `server/db/connection.js`, `server/config.js`
+**Files modified:** `Dockerfile`, `server/index.js`, `server/routes/auth.js`, `server/routes/ai.js`, `server/routes/cv.js`, `server/config.js`
 
 ---
 
