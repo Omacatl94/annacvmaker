@@ -1,7 +1,7 @@
 import { config } from '../config.js';
 
 export const google = {
-  getAuthUrl() {
+  getAuthUrl(state) {
     const params = new URLSearchParams({
       client_id: config.google.clientId,
       redirect_uri: config.google.callbackUrl,
@@ -9,6 +9,7 @@ export const google = {
       scope: 'openid email profile',
       access_type: 'offline',
       prompt: 'consent',
+      state,
     });
     return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   },
@@ -37,12 +38,13 @@ export const google = {
 };
 
 export const linkedin = {
-  getAuthUrl() {
+  getAuthUrl(state) {
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: config.linkedin.clientId,
       redirect_uri: config.linkedin.callbackUrl,
       scope: 'openid profile email',
+      state,
     });
     return `https://www.linkedin.com/oauth/v2/authorization?${params}`;
   },

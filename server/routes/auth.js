@@ -23,6 +23,27 @@ function clearAuthCookie(reply) {
 }
 
 export default async function authRoutes(app) {
+  const STATE_COOKIE = 'jh_oauth_state';
+  const STATE_MAX_AGE = 600; // 10 minutes
+
+  function setStateCookie(reply, state) {
+    reply.setCookie(STATE_COOKIE, state, {
+      path: '/api/auth',
+      httpOnly: true,
+      secure: config.cookieSecure,
+      sameSite: 'lax',
+      maxAge: STATE_MAX_AGE,
+    });
+  }
+
+  function verifyState(req) {
+    const cookieState = req.cookies?.[STATE_COOKIE];
+    const queryState = req.query?.state;
+    if (!cookieState || !queryState || cookieState !== queryState) {
+      throw new Error('OAuth state mismatch');
+    }
+  }
+
   async function auditLog(req, userId, action, metadata = null) {
     app.db.query(
       'INSERT INTO audit_logs (user_id, action, ip, user_agent, metadata) VALUES ($1, $2, $3, $4, $5)',
@@ -59,11 +80,15 @@ export default async function authRoutes(app) {
   }
 
   app.get('/google', (req, reply) => {
-    reply.redirect(google.getAuthUrl());
+    const state = crypto.randomBytes(32).toString('hex');
+    setStateCookie(reply, state);
+    reply.redirect(google.getAuthUrl(state));
   });
 
   app.get('/google/callback', async (req, reply) => {
     try {
+      verifyState(req);
+      reply.clearCookie(STATE_COOKIE, { path: '/api/auth' });
       const { code } = req.query;
       if (!code) throw new Error('No code received');
       const tokens = await google.getToken(code);
@@ -79,11 +104,15 @@ export default async function authRoutes(app) {
   });
 
   app.get('/linkedin', (req, reply) => {
-    reply.redirect(linkedin.getAuthUrl());
+    const state = crypto.randomBytes(32).toString('hex');
+    setStateCookie(reply, state);
+    reply.redirect(linkedin.getAuthUrl(state));
   });
 
   app.get('/linkedin/callback', async (req, reply) => {
     try {
+      verifyState(req);
+      reply.clearCookie(STATE_COOKIE, { path: '/api/auth' });
       const { code } = req.query;
       if (!code) throw new Error('No code received');
       const tokens = await linkedin.getToken(code);
