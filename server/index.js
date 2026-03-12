@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import cookie from '@fastify/cookie';
 import formbody from '@fastify/formbody';
 import multipart from '@fastify/multipart';
@@ -86,6 +87,11 @@ await app.register(helmet, {
       geolocation: [],
     },
   },
+});
+await app.register(rateLimit, {
+  max: 100,
+  timeWindow: '1 minute',
+  keyGenerator: (req) => req.user?.id?.toString() || req.ip,
 });
 await app.register(cookie);
 await app.register(formbody);
