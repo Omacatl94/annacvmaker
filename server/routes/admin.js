@@ -281,4 +281,20 @@ export default async function adminRoutes(app) {
 
     reply.send({ ok: true, code, email: wl.rows[0].email });
   });
+
+  // Generate a standalone invite code (no waitlist entry needed)
+  app.post('/invite-generate', async (req, reply) => {
+    const { generateAdminInvite } = await import('../services/invites.js');
+    const code = await generateAdminInvite(app.db);
+
+    await app.db.query(
+      `INSERT INTO audit_logs (user_id, action, ip, user_agent, metadata)
+       VALUES ($1, 'admin_invite_generate', $2, $3, $4)`,
+      [req.user.id, req.ip, req.headers['user-agent']?.substring(0, 500) || null,
+       JSON.stringify({ code })]
+    );
+
+    const link = `https://jobhacker.it/?invite=${code}`;
+    reply.send({ ok: true, code, link });
+  });
 }

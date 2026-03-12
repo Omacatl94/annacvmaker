@@ -93,4 +93,5 @@ export const api = {
   adminErrors: (params) => request(`/admin/errors?${new URLSearchParams(params)}`),
   adminWaitlist: (params) => request(`/admin/waitlist?${new URLSearchParams(params)}`),
   adminInviteWaitlist: (id) => request(`/admin/waitlist/${id}/invite`, { method: 'POST' }),
+  adminGenerateInvite: () => request('/admin/invite-generate', { method: 'POST' }),
 };
