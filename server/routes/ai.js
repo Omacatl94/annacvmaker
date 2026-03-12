@@ -7,6 +7,7 @@ import { buildGenerationPrompt } from '../services/prompt-builder.js';
 import { buildAnalyzerPrompt } from '../services/cv-analyzer.js';
 import { buildATSPrompt, buildOptimizePrompt, buildKeywordExtractionPrompt, buildFitScorePrompt } from '../services/ats-scorer.js';
 import { buildCoverLetterPrompt } from '../services/cover-letter-builder.js';
+import { handleFirstGeneration } from '../services/invites.js';
 
 function parseJSON(raw) {
   let jsonStr = raw;
@@ -131,12 +132,29 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     const { profile, jobDescription, language, targetKeywords } = req.body;
     if (!profile || !jobDescription) return reply.code(400).send({ error: 'profile and jobDescription required' });
 
+    // Check if this is the user's first generation (before the new one is saved)
+    let isFirstGeneration = false;
+    try {
+      const { rows: [{ count }] } = await app.db.query(
+        `SELECT COUNT(*)::int as count FROM generated_cvs
+         WHERE profile_id IN (SELECT id FROM cv_profiles WHERE user_id = $1)`,
+        [req.user.id]
+      );
+      isFirstGeneration = count === 0;
+    } catch { /* non-critical */ }
+
     const prompt = buildGenerationPrompt(profile, jobDescription, language || 'it', targetKeywords || null);
     const result = await openrouter.generate([{ role: 'user', content: prompt }]);
     try {
       const parsed = parseJSON(result);
       // Consume credit after successful generation
       await consumeCredits(req.server.db, req.user.id, 'cv_generation');
+
+      // Trigger invite activation if first generation (fire-and-forget)
+      if (isFirstGeneration) {
+        handleFirstGeneration(app.db, req.user.id, req.log).catch(() => {});
+      }
+
       reply.send(parsed);
     } catch {
       app.db.query(
