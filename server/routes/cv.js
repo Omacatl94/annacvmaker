@@ -1,8 +1,8 @@
-import { authGuard, registeredGuard } from '../middleware/auth-guard.js';
+import { activeGuard, registeredGuard } from '../middleware/auth-guard.js';
 import { generatePDF } from '../services/pdf-export.js';
 
 export default async function cvRoutes(app) {
-  app.addHook('preHandler', authGuard);
+  app.addHook('preHandler', activeGuard);
   const userId = (req) => req.user?.id;
 
   app.get('/profiles', async (req, reply) => {

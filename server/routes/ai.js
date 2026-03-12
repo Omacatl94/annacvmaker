@@ -1,4 +1,4 @@
-import { authGuard } from '../middleware/auth-guard.js';
+import { activeGuard } from '../middleware/auth-guard.js';
 import { creditGuard } from '../middleware/credits.js';
 import { openrouter } from '../services/openrouter.js';
 import { safePath } from '../utils/safe-path.js';
@@ -20,7 +20,7 @@ const AI_HEAVY = { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } };
 const AI_LIGHT = { config: { rateLimit: { max: 15, timeWindow: '1 minute' } } };
 
 export default async function aiRoutes(app) {
-  app.addHook('preHandler', authGuard);
+  app.addHook('preHandler', activeGuard);
 
   app.post('/parse-cv', AI_HEAVY, async (req, reply) => {
     const { filePath } = req.body;
