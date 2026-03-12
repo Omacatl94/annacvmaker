@@ -31,6 +31,7 @@ export const config = {
     database: env('DB_NAME', 'cvmaker'),
     user: env('DB_USER', 'cvmaker'),
     password: env('DB_PASSWORD'),
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false,
   },
   openrouter: {
     apiKey: env('OPENROUTER_API_KEY'),
