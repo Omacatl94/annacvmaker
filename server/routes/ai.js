@@ -54,7 +54,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
          VALUES ('warn', $1, $2, $3, 422)`,
         [`POST /api/ai/parse-cv`, 'JSON parse failure: ' + (structured || '').substring(0, 500), req.user?.id]
       ).catch(() => {});
-      reply.code(422).send({ error: 'Failed to parse CV structure', raw: rawText });
+      reply.code(422).send({ error: 'Failed to parse CV structure' });
     }
   });
 
@@ -72,7 +72,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
          VALUES ('warn', $1, $2, $3, 422)`,
         [`POST /api/ai/analyze`, 'JSON parse failure: ' + (result || '').substring(0, 500), req.user?.id]
       ).catch(() => {});
-      reply.code(422).send({ error: 'Failed to parse analysis', raw: result });
+      reply.code(422).send({ error: 'Failed to parse analysis' });
     }
   });
 
@@ -90,7 +90,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
          VALUES ('warn', $1, $2, $3, 422)`,
         [`POST /api/ai/fit-score`, 'JSON parse failure: ' + (result || '').substring(0, 500), req.user?.id]
       ).catch(() => {});
-      reply.code(422).send({ error: 'Failed to parse fit score', raw: result });
+      reply.code(422).send({ error: 'Failed to parse fit score' });
     }
   });
 
@@ -108,7 +108,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
          VALUES ('warn', $1, $2, $3, 422)`,
         [`POST /api/ai/extract-keywords`, 'JSON parse failure: ' + (result || '').substring(0, 500), req.user?.id]
       ).catch(() => {});
-      reply.code(422).send({ error: 'Failed to parse keyword extraction', raw: result });
+      reply.code(422).send({ error: 'Failed to parse keyword extraction' });
     }
   });
 
@@ -144,7 +144,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
          VALUES ('warn', $1, $2, $3, 422)`,
         [`POST /api/ai/generate`, 'JSON parse failure: ' + (result || '').substring(0, 500), req.user?.id]
       ).catch(() => {});
-      reply.code(422).send({ error: 'Failed to parse generated CV', raw: result });
+      reply.code(422).send({ error: 'Failed to parse generated CV' });
     }
   });
 
@@ -162,7 +162,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
          VALUES ('warn', $1, $2, $3, 422)`,
         [`POST /api/ai/ats-score`, 'JSON parse failure: ' + (result || '').substring(0, 500), req.user?.id]
       ).catch(() => {});
-      reply.code(422).send({ error: 'Failed to parse ATS score', raw: result });
+      reply.code(422).send({ error: 'Failed to parse ATS score' });
     }
   });
 
@@ -190,7 +190,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
          VALUES ('warn', $1, $2, $3, 422)`,
         [`POST /api/ai/optimize`, 'JSON parse failure: ' + (result || '').substring(0, 500), req.user?.id]
       ).catch(() => {});
-      reply.code(422).send({ error: 'Failed to parse optimization', raw: result });
+      reply.code(422).send({ error: 'Failed to parse optimization' });
     }
   });
 
@@ -215,7 +215,7 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
          VALUES ('warn', $1, $2, $3, 422)`,
         [`POST /api/ai/cover-letter`, 'JSON parse failure: ' + (result || '').substring(0, 500), req.user?.id]
       ).catch(() => {});
-      reply.code(422).send({ error: 'Failed to parse cover letter', raw: result });
+      reply.code(422).send({ error: 'Failed to parse cover letter' });
     }
   });
 }

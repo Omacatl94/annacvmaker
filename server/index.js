@@ -51,7 +51,6 @@ app.setErrorHandler(async (error, request, reply) => {
   if (statusCode >= 500) {
     reply.code(statusCode).send({
       error: 'Errore interno. Riprova tra qualche secondo.',
-      ...(process.env.NODE_ENV !== 'production' && { detail: error.message }),
     });
   } else {
     reply.code(statusCode).send({ error: error.message });
