@@ -24,7 +24,7 @@ try {
 
 export const config = {
   port: parseInt(env('PORT', '3000')),
-  sessionSecret: env('SESSION_SECRET'),
+  jwtSecret: env('SESSION_SECRET'),
   db: {
     host: env('DB_HOST', 'localhost'),
     port: parseInt(env('DB_PORT', '5432')),
@@ -37,8 +37,9 @@ export const config = {
     baseUrl: 'https://openrouter.ai/api/v1',
     models: {
       generation: 'anthropic/claude-opus-4-6',
+      analysis: 'anthropic/claude-sonnet-4',
       ats: 'anthropic/claude-haiku-4.5',
-      ocr: 'mistral-ocr-latest',
+      ocr: 'google/gemini-2.5-flash',
     },
   },
   google: {
@@ -51,9 +52,24 @@ export const config = {
     clientSecret: env('LINKEDIN_CLIENT_SECRET', ''),
     callbackUrl: env('LINKEDIN_CALLBACK_URL', 'http://localhost:3000/api/auth/linkedin/callback'),
   },
+  stripe: {
+    secretKey: env('STRIPE_SECRET_KEY', ''),
+    webhookSecret: env('STRIPE_WEBHOOK_SECRET', ''),
+  },
+  openBeta: env('OPEN_BETA', 'false') === 'true',
+  openBetaDailyLimit: parseInt(env('OPEN_BETA_DAILY_LIMIT', '5')),
+  adminEmails: env('ADMIN_EMAILS', '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean),
   upload: {
     maxFileSize: 10 * 1024 * 1024, // 10MB
     photoDir: 'uploads/photos',
     cvDir: 'uploads/cvs',
   },
+  appOrigin: env('APP_ORIGIN', 'https://app.jobhacker.it'),
+  allowedOrigins: (() => {
+    const raw = env('ALLOWED_ORIGINS', '');
+    if (raw) return raw.split(',').map(s => s.trim()).filter(Boolean);
+    const origin = env('APP_ORIGIN', 'https://app.jobhacker.it');
+    return [origin, 'https://jobhacker.it'];
+  })(),
+  cookieSecure: env('COOKIE_SECURE', 'true') === 'true',
 };
