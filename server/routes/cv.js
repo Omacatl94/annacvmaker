@@ -76,7 +76,18 @@ export default async function cvRoutes(app) {
     reply.send(result.rows);
   });
 
-  app.post('/export-pdf', async (req, reply) => {
+  app.post('/export-pdf', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['html'],
+        properties: {
+          html: { type: 'string', maxLength: 512000 },
+          filename: { type: 'string', maxLength: 120, pattern: '^[a-zA-Z0-9_ -]*$' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const { html, filename } = req.body;
     if (!html) return reply.code(400).send({ error: 'html required' });
 

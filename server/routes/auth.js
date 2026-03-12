@@ -182,7 +182,19 @@ export default async function authRoutes(app) {
     });
   });
 
-  app.put('/me', async (req, reply) => {
+  app.put('/me', {
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', maxLength: 200 },
+          phone: { type: 'string', maxLength: 30 },
+          location: { type: 'string', maxLength: 200 },
+          preferences: { type: 'object', maxProperties: 50 },
+        },
+      },
+    },
+  }, async (req, reply) => {
     if (!req.user?.id) return reply.code(401).send({ error: 'Not authenticated' });
     const { name, phone, location, preferences } = req.body;
     const result = await app.db.query(

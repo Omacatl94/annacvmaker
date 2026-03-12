@@ -43,7 +43,18 @@ export default async function paymentRoutes(app) {
   const stripe = new Stripe(config.stripe.secretKey);
 
   // POST /create-checkout — auth required
-  app.post('/create-checkout', { preHandler: authGuard }, async (req, reply) => {
+  app.post('/create-checkout', {
+    preHandler: authGuard,
+    schema: {
+      body: {
+        type: 'object',
+        required: ['tier'],
+        properties: {
+          tier: { type: 'string', enum: Object.keys(PRICING_TIERS) },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const { tier } = req.body;
     const tierData = PRICING_TIERS[tier];
     if (!tierData) return reply.code(400).send({ error: 'Tier non valido' });
