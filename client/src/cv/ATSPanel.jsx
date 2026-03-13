@@ -332,6 +332,7 @@ function ResultsView({ result, profile, jobDescription, extractedKeywords, onOpt
 export default function ATSPanel({ profile, jobDescription, onOptimized, onScored, extractedKeywords }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const ranRef = useRef(false);
 
   const runAnalysis = useCallback(async () => {
     setLoading(true);
@@ -353,14 +354,18 @@ export default function ATSPanel({ profile, jobDescription, onOptimized, onScore
     if (onScored) onScored(atsResult.classic.total, atsResult.smart.total);
   }, [jobDescription, onScored]);
 
+  // Auto-run on mount (once per generation)
+  useEffect(() => {
+    if (!ranRef.current && jobDescription) {
+      ranRef.current = true;
+      // Small delay to let cv-container render
+      const timer = setTimeout(runAnalysis, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [jobDescription, runAnalysis]);
+
   return (
     <div className="ats-panel">
-      {!result && !loading && (
-        <button className="btn-primary" onClick={runAnalysis}>
-          {t('ats.runBtn')}
-        </button>
-      )}
-
       {loading && (
         <div className="ats-loading">
           <div className="upload-spinner" />
