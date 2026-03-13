@@ -244,8 +244,81 @@ function InviteSection() {
   );
 }
 
+// ── Raccoon Communiqués ──
+// Each invite code maps to a unique message, like an Anonymous leak
+
+const COMMUNIQUES = [
+  {
+    id: 'ATS',
+    text: 'INTERCETTAZIONE \u2014 Il 75% dei CV viene scartato da un algoritmo prima che un umano lo veda. Questo link d\u00E0 accesso a uno strumento che parla la lingua di quei filtri. Usalo.',
+  },
+  {
+    id: '7SEC',
+    text: 'INFORMATIVA RISERVATA \u2014 Un recruiter dedica in media 7.4 secondi a ogni CV. Sette. Questo strumento ottimizza ogni singolo secondo. Non sprecare l\'occasione.',
+  },
+  {
+    id: 'GHOST',
+    text: 'SEGNALAZIONE INTERNA \u2014 Il 60% delle candidature online finisce in un buco nero. Nessuna risposta, nessun feedback. Questo link \u00E8 l\'antidoto. Provalo prima che sparisca.',
+  },
+  {
+    id: 'KEYWORD',
+    text: 'DOCUMENTO DECLASSIFICATO \u2014 I sistemi ATS cercano parole chiave esatte. Se non ci sono, il tuo CV non esiste. Questo strumento le inserisce al posto giusto. Silenziosamente.',
+  },
+  {
+    id: 'FORMAT',
+    text: 'LEAK CONFERMATO \u2014 Colonne, grafici, icone? I parser ATS li ignorano o li distruggono. Il formato conta pi\u00F9 del contenuto. Qui si genera nel formato che i filtri vogliono vedere.',
+  },
+  {
+    id: 'TAILOR',
+    text: 'COMUNICATO URGENTE \u2014 Mandare lo stesso CV a 50 aziende \u00E8 come sparare nel buio. Ogni annuncio ha le sue regole. Questo strumento adatta il CV all\'annuncio. Ogni volta.',
+  },
+  {
+    id: 'INSIDER',
+    text: 'NOTA OPERATIVA \u2014 I recruiter cercano pattern: headline chiara, competenze in evidenza, bullet misurabili. Questo strumento conosce i pattern. Tu devi solo incollare l\'annuncio.',
+  },
+  {
+    id: 'TIME',
+    text: 'DISPACCIO #7 \u2014 Il tempo medio per preparare un buon CV su misura \u00E8 45 minuti. Con questo strumento, 45 secondi. Il risparmio \u00E8 reale. Il vantaggio competitivo anche.',
+  },
+  {
+    id: 'COVER',
+    text: 'INTELLIGENCE REPORT \u2014 La cover letter \u00E8 il cavallo di Troia della candidatura. Nessuno la legge, ma tutti la vogliono. Questo strumento la genera insieme al CV. Due piccioni, zero fatica.',
+  },
+  {
+    id: 'SCORE',
+    text: 'ALLERTA \u2014 Prima di candidarti, dovresti sapere se il tuo profilo \u00E8 compatibile con l\'annuncio. Questo strumento te lo dice in 3 secondi. Poi decide tu.',
+  },
+  {
+    id: 'MASS',
+    text: 'BOLLETTINO SEGRETO \u2014 Chi cerca lavoro invia in media 27 candidature prima di ottenere un colloquio. Con un CV ottimizzato per ogni annuncio, quel numero si dimezza. Provare per credere.',
+  },
+  {
+    id: 'REJECT',
+    text: 'DOSSIER RISERVATO \u2014 Il motivo pi\u00F9 comune di scarto? "Profilo non in linea." Non perch\u00E9 non lo sei, ma perch\u00E9 il CV non lo comunica. Questo strumento risolve il problema.',
+  },
+];
+
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function getCommunique(code) {
+  return COMMUNIQUES[hashCode(code) % COMMUNIQUES.length];
+}
+
+function buildShareMessage(code) {
+  const communique = getCommunique(code);
+  const link = `https://jobhacker.it/?invite=${code}`;
+  return `\uD83E\uDD9D ${communique.text}\n\n${link}\n\n\u2014 Il Procione, JobHacker Intelligence`;
+}
+
 function InviteContent({ data }) {
   const [copiedCode, setCopiedCode] = useState(null);
+  const [expandedCode, setExpandedCode] = useState(null);
 
   if (!data.codes || data.codes.length === 0) {
     return <p className="account-empty">{t('invite.noInvites')}</p>;
@@ -270,8 +343,9 @@ function InviteContent({ data }) {
 
       <div className="invite-list">
         {data.codes.map((code) => {
-          const shareLink = `https://jobhacker.it/?invite=${code.code}`;
-          const whatsappText = `${shareLink}\nmetti l'annuncio, esce il CV. passa i filtri.\n\u2014 JH \uD83E\uDD9D`;
+          const shareMessage = buildShareMessage(code.code);
+          const communique = getCommunique(code.code);
+          const isExpanded = expandedCode === code.code;
 
           return (
             <div className={`invite-card invite-${code.status}`} key={code.code}>
@@ -280,9 +354,22 @@ function InviteContent({ data }) {
               {code.status === 'available' && (
                 <>
                   <span className="invite-status">{t('invite.available')}</span>
+
+                  {/* Communiqué preview */}
+                  <div
+                    className="communique-preview"
+                    onClick={() => setExpandedCode(isExpanded ? null : code.code)}
+                  >
+                    <span className="communique-raccoon">{'\uD83E\uDD9D'}</span>
+                    <span className="communique-snippet">
+                      {isExpanded ? communique.text : communique.text.slice(0, 60) + '...'}
+                    </span>
+                    <span className="communique-toggle">{isExpanded ? '\u25B2' : '\u25BC'}</span>
+                  </div>
+
                   <div className="invite-actions">
                     <a
-                      href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
+                      href={`https://wa.me/?text=${encodeURIComponent(shareMessage)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-primary btn-sm"
@@ -292,7 +379,7 @@ function InviteContent({ data }) {
                     <button
                       className="btn-secondary btn-sm"
                       onClick={() => {
-                        navigator.clipboard.writeText(shareLink).then(() => {
+                        navigator.clipboard.writeText(shareMessage).then(() => {
                           setCopiedCode(code.code);
                           setTimeout(() => setCopiedCode(null), 2000);
                         });

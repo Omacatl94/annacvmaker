@@ -3710,6 +3710,16 @@ body {
   border: 1px solid var(--color-border);
   flex-wrap: wrap;
 }
+.invite-card.invite-available {
+  flex-direction: column;
+  align-items: stretch;
+}
+.invite-card.invite-available .invite-code {
+  align-self: flex-start;
+}
+.invite-card.invite-available .invite-actions {
+  margin-left: 0;
+}
 
 .invite-card.invite-activated {
   border-color: var(--color-accent);
@@ -3746,6 +3756,42 @@ body {
   display: flex;
   gap: 8px;
   margin-left: auto;
+}
+
+/* ── Communiqué Preview ── */
+.communique-preview {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--color-bg-primary);
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin: 4px 0;
+}
+.communique-preview:hover {
+  background: var(--color-bg-secondary);
+}
+.communique-raccoon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.communique-snippet {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+.communique-toggle {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .invite-earned {
