@@ -121,7 +121,7 @@ export default async function cvRoutes(app) {
 
   app.put('/generated/:id', { preHandler: registeredGuard }, async (req, reply) => {
     const { id } = req.params;
-    const { status, notes } = req.body;
+    const { status, notes, ats_classic, ats_smart } = req.body;
     const existing = await app.db.query(
       `SELECT g.id FROM generated_cvs g
        JOIN cv_profiles p ON g.profile_id = p.id
@@ -132,9 +132,11 @@ export default async function cvRoutes(app) {
     const result = await app.db.query(
       `UPDATE generated_cvs
        SET status = COALESCE($1, status),
-           notes = COALESCE($2, notes)
-       WHERE id = $3 RETURNING *`,
-      [status, notes, id]
+           notes = COALESCE($2, notes),
+           ats_classic = COALESCE($3, ats_classic),
+           ats_smart = COALESCE($4, ats_smart)
+       WHERE id = $5 RETURNING *`,
+      [status, notes, ats_classic ?? null, ats_smart ?? null, id]
     );
     reply.send(result.rows[0]);
   });

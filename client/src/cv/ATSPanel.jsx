@@ -329,7 +329,7 @@ function ResultsView({ result, profile, jobDescription, extractedKeywords, onOpt
 }
 
 // ── Main ATS Panel ──
-export default function ATSPanel({ profile, jobDescription, onOptimized, extractedKeywords }) {
+export default function ATSPanel({ profile, jobDescription, onOptimized, onScored, extractedKeywords }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -350,7 +350,8 @@ export default function ATSPanel({ profile, jobDescription, onOptimized, extract
     track('ats_scored', { classic: atsResult.classic.total, smart: atsResult.smart.total });
     setResult(atsResult);
     setLoading(false);
-  }, [jobDescription]);
+    if (onScored) onScored(atsResult.classic.total, atsResult.smart.total);
+  }, [jobDescription, onScored]);
 
   return (
     <div className="ats-panel">

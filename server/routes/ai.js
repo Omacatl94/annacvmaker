@@ -184,7 +184,10 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     }
   });
 
-  app.post('/optimize', AI_HEAVY, async (req, reply) => {
+  app.post('/optimize', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    preHandler: [creditGuard('cv_rewrite')],
+  }, async (req, reply) => {
     const { generatedData, jobDescription, language, profile,
             selectedKeywords, missingKeywords, semanticKeywords, exactKeywords } = req.body;
     if (!generatedData || !jobDescription) {
@@ -201,8 +204,11 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
     const prompt = buildOptimizePrompt(generatedData, keywords, jobDescription, language || 'it', profile);
     const result = await openrouter.generate([{ role: 'user', content: prompt }]);
     try {
-      reply.send(parseJSON(result));
-    } catch {
+      const parsed = parseJSON(result);
+      await consumeCredits(req.server.db, req.user.id, 'cv_rewrite');
+      reply.send(parsed);
+    } catch (err) {
+      if (err.statusCode === 402) throw err;
       app.db.query(
         `INSERT INTO error_logs (level, endpoint, message, user_id, status_code)
          VALUES ('warn', $1, $2, $3, 422)`,

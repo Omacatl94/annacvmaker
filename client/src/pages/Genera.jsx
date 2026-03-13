@@ -82,6 +82,7 @@ export default function Genera() {
   const [generated, setGenerated] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
   const [extractedKeywords, setExtractedKeywords] = useState(null);
+  const [savedCvId, setSavedCvId] = useState(null);
 
   // Load profile on mount
   useEffect(() => {
@@ -109,17 +110,17 @@ export default function Genera() {
       return;
     }
     try {
-      await api.saveGenerated({
+      const saved = await api.saveGenerated({
         profile_id: prof.id,
         job_description: jd || '',
-        target_role: data.target_role || data.targetRole || data.roleTitle || '',
-        target_company: data.target_company || data.targetCompany || data.companyName || '',
+        target_role: data.roleTitle || '',
+        target_company: data.companyName || '',
         language: lang,
         style,
         generated_data: { ...data, _profile: prof },
-        ats_classic: data.ats_classic || null,
-        ats_smart: data.ats_smart || null,
+        location: prof.personal?.location || '',
       });
+      if (saved?.id) setSavedCvId(saved.id);
     } catch (err) {
       console.error('[autoSave] Errore salvataggio candidatura:', err.message);
     }
@@ -141,10 +142,20 @@ export default function Genera() {
     setGenerated(newData);
   }, []);
 
+  const handleATSScored = useCallback(async (classic, smart) => {
+    if (!savedCvId) return;
+    try {
+      await api.updateGenerated(savedCvId, { ats_classic: classic, ats_smart: smart });
+    } catch (err) {
+      console.error('[atsScore] Errore aggiornamento punteggio:', err.message);
+    }
+  }, [savedCvId]);
+
   const handleNewGeneration = useCallback(() => {
     setGenerated(null);
     setJobDescription('');
     setExtractedKeywords(null);
+    setSavedCvId(null);
   }, []);
 
   if (!loaded) {
@@ -208,6 +219,7 @@ export default function Genera() {
           profile={profile}
           jobDescription={jobDescription}
           onOptimized={handleOptimized}
+          onScored={handleATSScored}
           extractedKeywords={extractedKeywords}
         />
 
