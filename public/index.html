@@ -1,17 +1,94 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CV Maker</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <title>JobHacker — Il sistema non e' dalla tua parte. Noi si'.</title>
+  <meta name="description" content="Il 75% dei CV viene scartato dall'ATS. JobHacker genera CV ottimizzati con AI in 5 minuti. Gratis il primo. Niente subscription.">
+  <meta property="og:title" content="JobHacker — CV Ottimizzato per ATS con AI">
+  <meta property="og:description" content="Il sistema non e' dalla tua parte. Noi si'. Genera CV che superano i filtri ATS in 5 minuti.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://jobhacker.it">
+  <meta property="og:image" content="https://jobhacker.it/assets/og-image.png">
+  <meta property="og:locale" content="it_IT">
+  <link rel="canonical" href="https://jobhacker.it/">
+  <meta name="robots" content="index, follow">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="JobHacker — CV Ottimizzato per ATS con AI">
+  <meta name="twitter:description" content="Il 75% dei CV viene scartato dall'ATS. JobHacker genera CV ottimizzati in 5 minuti.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+
+  <!-- Structured Data: SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "JobHacker",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "url": "https://jobhacker.it",
+    "description": "Genera CV ottimizzati per ATS con intelligenza artificiale. Il primo CV e' gratis.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    }
+  }
+  </script>
+
+  <!-- Structured Data: FAQ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Cos'e' un ATS?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ATS (Applicant Tracking System) e' il software usato dalle aziende per filtrare automaticamente i CV. Il 75% dei CV viene scartato prima che un umano li veda."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "JobHacker e' gratis?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Il primo CV e' completamente gratuito, con analisi ATS inclusa. Pacchetti aggiuntivi partono da 4,99 euro."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "L'AI inventa competenze?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. JobHacker riformula solo le competenze che hai dichiarato. Le 8 regole anti-hallucination impediscono all'AI di inventare dati."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script defer data-domain="jobhacker.it" src="https://plausible.io/js/script.js"></script>
+  <script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
   <link rel="stylesheet" href="/css/app.css">
   <link rel="stylesheet" href="/css/cv-layout.css">
   <link rel="stylesheet" href="/css/cv-themes.css">
+  <script>
+    // Default dark — solo se l'utente ha scelto esplicitamente light
+    const saved = localStorage.getItem('jh-theme');
+    if (saved === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
 </head>
 <body>
   <div id="app">
-    <p>CV Maker is loading...</p>
+    <p>JobHacker is loading...</p>
   </div>
   <script type="module" src="/js/app.js"></script>
 </body>

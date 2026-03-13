@@ -21,7 +21,7 @@ export function renderEditorToolbar(container, profile, onSave) {
   // Edit mode banner
   const banner = document.createElement('div');
   banner.className = 'edit-banner';
-  banner.textContent = 'Modalit\u00e0 modifica \u2014 clicca su qualsiasi campo per modificarlo';
+  banner.textContent = 'Modalita\' modifica — clicca su qualsiasi campo per cambiarlo';
 
   editBtn.addEventListener('click', () => {
     if (!editMode) {

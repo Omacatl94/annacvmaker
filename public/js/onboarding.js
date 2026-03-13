@@ -20,7 +20,7 @@ export async function renderOnboarding(container, profile, jobDescription, langu
   loadingDiv.appendChild(spinner);
 
   const loadingText = document.createElement('p');
-  loadingText.textContent = 'Analisi strategica del CV in corso...';
+  loadingText.textContent = 'Analizziamo il tuo profilo rispetto all\'annuncio...';
   loadingDiv.appendChild(loadingText);
 
   container.appendChild(loadingDiv);
@@ -70,14 +70,14 @@ export async function renderOnboarding(container, profile, jobDescription, langu
     const counter = document.createElement('span');
     counter.className = 'onboarding-counter';
     function updateCounter() {
-      counter.textContent = `${actioned.size}/${sorted.length} osservazioni processate`;
+      counter.textContent = `${actioned.size}/${sorted.length} punti gestiti`;
     }
     updateCounter();
     footer.appendChild(counter);
 
     const proceedBtn = document.createElement('button');
     proceedBtn.className = 'btn-primary';
-    proceedBtn.textContent = 'Procedi alla generazione';
+    proceedBtn.textContent = 'Tutto chiaro, genera il CV';
     proceedBtn.disabled = sorted.length > 0;  // disabled until all cards actioned (or 0 cards)
     if (sorted.length === 0) proceedBtn.classList.add('ready');
     proceedBtn.addEventListener('click', () => {
@@ -91,7 +91,7 @@ export async function renderOnboarding(container, profile, jobDescription, langu
     container.textContent = '';
     const errDiv = document.createElement('div');
     errDiv.className = 'upload-feedback error';
-    errDiv.textContent = 'Errore nell\'analisi: ' + err.message;
+    errDiv.textContent = 'Qualcosa non ha funzionato nell\'analisi. ' + err.message;
     container.appendChild(errDiv);
   }
 }
@@ -116,7 +116,7 @@ function renderOverallFit(container, fit) {
 
   const scoreLabel = document.createElement('span');
   scoreLabel.className = 'fit-score-label';
-  scoreLabel.textContent = '/100 Fit Score';
+  scoreLabel.textContent = '/100 compatibilita\'';
   scoreDiv.appendChild(scoreLabel);
 
   section.appendChild(scoreDiv);
@@ -137,7 +137,7 @@ function renderObservationCard(obs, index, workingProfile, onAction) {
   // Type badge
   const badge = document.createElement('span');
   badge.className = `obs-badge obs-badge-${obs.type}`;
-  const typeLabels = { incongruence: 'INCONGRUENZA', improve: 'MIGLIORA', valorize: 'VALORIZZA' };
+  const typeLabels = { incongruence: 'DA CORREGGERE', improve: 'DA MIGLIORARE', valorize: 'DA VALORIZZARE' };
   badge.textContent = typeLabels[obs.type] || obs.type.toUpperCase();
   card.appendChild(badge);
 
@@ -168,7 +168,7 @@ function renderObservationCard(obs, index, workingProfile, onAction) {
   if (obs.actions.includes('edit')) {
     editField = document.createElement('textarea');
     editField.className = 'obs-edit-field';
-    editField.placeholder = 'Riscrivi qui...';
+    editField.placeholder = 'Riscrivi come vuoi che appaia nel CV...';
     // Pre-fill with current bullet text if applicable
     if (obs.target === 'experience' && obs.target_index !== undefined) {
       const exp = workingProfile.experiences[obs.target_index];
@@ -182,10 +182,10 @@ function renderObservationCard(obs, index, workingProfile, onAction) {
   const actionLabels = {
     remove: 'Rimuovi',
     reduce: 'Riduci',
-    keep: 'Mantieni',
-    edit: 'Salva modifiche',
-    apply: 'Applica consiglio',
-    ignore: 'Ignora',
+    keep: 'Tieni cosi\'',
+    edit: 'Salva',
+    apply: 'Applica',
+    ignore: 'Salta',
   };
 
   const actionStyles = {
@@ -209,7 +209,7 @@ function renderObservationCard(obs, index, workingProfile, onAction) {
 
       const doneLabel = document.createElement('span');
       doneLabel.className = 'obs-done-label';
-      doneLabel.textContent = actionLabels[action] + ' applicato';
+      doneLabel.textContent = 'Fatto';
       card.appendChild(doneLabel);
 
       onAction();

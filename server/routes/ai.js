@@ -45,7 +45,7 @@ Return ONLY valid JSON:
 }
 Rules: Extract ONLY what is explicitly written. Never invent data. Order experiences by most recent first.`;
 
-    const structured = await openrouter.generate([{ role: 'user', content: structurePrompt }]);
+    const structured = await openrouter.analyze([{ role: 'user', content: structurePrompt }]);
     try {
       const parsed = parseJSON(structured);
       reply.send({ raw: rawText, structured: parsed });

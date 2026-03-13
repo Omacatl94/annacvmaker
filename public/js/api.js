@@ -24,17 +24,25 @@ export const api = {
   updateProfile: (id, data) => request(`/cv/profiles/${id}`, { method: 'PUT', body: data }),
   deleteProfile: (id) => request(`/cv/profiles/${id}`, { method: 'DELETE' }),
 
-  uploadPhoto: (file) => {
+  uploadPhoto: async (file) => {
     const form = new FormData();
     form.append('file', file);
-    return fetch(`${BASE}/upload/photo`, { method: 'POST', body: form, credentials: 'include' })
-      .then(r => r.json());
+    const res = await fetch(`${BASE}/upload/photo`, { method: 'POST', body: form, credentials: 'include' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Upload failed');
+    }
+    return res.json();
   },
-  uploadCV: (file) => {
+  uploadCV: async (file) => {
     const form = new FormData();
     form.append('file', file);
-    return fetch(`${BASE}/upload/cv-file`, { method: 'POST', body: form, credentials: 'include' })
-      .then(r => r.json());
+    const res = await fetch(`${BASE}/upload/cv-file`, { method: 'POST', body: form, credentials: 'include' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Upload failed');
+    }
+    return res.json();
   },
 
   parseCV: (filePath) => request('/ai/parse-cv', { method: 'POST', body: { filePath } }),
@@ -92,7 +100,8 @@ export const api = {
   adminAudit: (params) => request(`/admin/audit?${new URLSearchParams(params)}`),
   adminErrors: (params) => request(`/admin/errors?${new URLSearchParams(params)}`),
   adminWaitlist: (params) => request(`/admin/waitlist?${new URLSearchParams(params)}`),
-  adminInviteWaitlist: (id) => request(`/admin/waitlist/${id}/invite`, { method: 'POST' }),
+  adminInviteWaitlist: (id) => request(`/admin/waitlist/${id}/invite`, { method: 'POST', body: {} }),
   adminInviteStats: () => request('/admin/stats/invites'),
-  adminGenerateInvite: () => request('/admin/invite-generate', { method: 'POST' }),
+  adminActivateUser: (id) => request(`/admin/users/${id}/activate`, { method: 'PUT', body: {} }),
+  adminGenerateInvite: () => request('/admin/invite-generate', { method: 'POST', body: {} }),
 };

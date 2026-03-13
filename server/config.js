@@ -74,4 +74,6 @@ export const config = {
     return [origin, 'https://jobhacker.it'];
   })(),
   cookieSecure: env('COOKIE_SECURE', 'true') === 'true',
+  resendApiKey: env('RESEND_API_KEY', ''),
+  emailFrom: env('EMAIL_FROM', 'JobHacker <noreply@jobhacker.it>'),
 };

@@ -16,6 +16,7 @@ export function renderAdmin(container) {
   const panels = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'users', label: 'Utenti' },
+    { id: 'waitlist', label: 'Waitlist' },
     { id: 'audit', label: 'Audit Log' },
     { id: 'errors', label: 'Errori' },
   ];
@@ -41,6 +42,7 @@ export function renderAdmin(container) {
   switch (activePanel) {
     case 'dashboard': renderDashboardPanel(content); break;
     case 'users': renderUsersPanel(content); break;
+    case 'waitlist': renderWaitlistPanel(content); break;
     case 'audit': renderAuditPanel(content); break;
     case 'errors': renderErrorsPanel(content); break;
   }
@@ -568,7 +570,7 @@ function renderUsersTable(container, users, total, offset, pageSize, onPageChang
 
   const thead = document.createElement('thead');
   const hRow = document.createElement('tr');
-  for (const col of ['Email', 'Nome', 'Crediti', 'CV generati', 'Spesa', 'Ultimo login', 'Registrato']) {
+  for (const col of ['Email', 'Nome', 'Status', 'Crediti', 'CV generati', 'Spesa', 'Ultimo login', 'Registrato']) {
     hRow.appendChild(Object.assign(document.createElement('th'), { textContent: col }));
   }
   thead.appendChild(hRow);
@@ -581,6 +583,44 @@ function renderUsersTable(container, users, total, offset, pageSize, onPageChang
 
     row.appendChild(Object.assign(document.createElement('td'), { textContent: u.email }));
     row.appendChild(Object.assign(document.createElement('td'), { textContent: u.name || '-' }));
+
+    const statusTd = document.createElement('td');
+    const isWaitlist = u.status === 'waitlist';
+    if (isWaitlist) {
+      const badge = document.createElement('span');
+      badge.className = 'admin-badge waitlist';
+      badge.textContent = 'waitlist';
+      statusTd.appendChild(badge);
+      const actBtn = document.createElement('button');
+      actBtn.className = 'btn-sm btn-activate';
+      actBtn.textContent = 'Attiva';
+      actBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('Attivare questo utente? Ricevera\' 2 crediti, 3 inviti e un\'email di benvenuto.')) return;
+        actBtn.disabled = true;
+        actBtn.textContent = '...';
+        try {
+          await api.adminActivateUser(u.id);
+          u.status = 'active';
+          statusTd.textContent = '';
+          const activeBadge = document.createElement('span');
+          activeBadge.className = 'admin-badge active';
+          activeBadge.textContent = 'active';
+          statusTd.appendChild(activeBadge);
+        } catch (err) {
+          alert('Errore: ' + err.message);
+          actBtn.disabled = false;
+          actBtn.textContent = 'Attiva';
+        }
+      });
+      statusTd.appendChild(actBtn);
+    } else {
+      const badge = document.createElement('span');
+      badge.className = 'admin-badge active';
+      badge.textContent = 'active';
+      statusTd.appendChild(badge);
+    }
+    row.appendChild(statusTd);
 
     const creditsTd = document.createElement('td');
     creditsTd.className = 'credits-cell';
@@ -687,7 +727,7 @@ async function toggleUserDetail(tbody, row, user) {
   const detailRow = document.createElement('tr');
   detailRow.className = 'user-detail-row';
   const td = document.createElement('td');
-  td.colSpan = 7;
+  td.colSpan = 8;
   td.textContent = 'Caricamento...';
   detailRow.appendChild(td);
   row.after(detailRow);
@@ -726,6 +766,153 @@ async function toggleUserDetail(tbody, row, user) {
     }
   } catch (err) {
     td.textContent = 'Errore: ' + err.message;
+  }
+}
+
+// ── Waitlist Panel ──
+async function renderWaitlistPanel(container) {
+  container.textContent = '';
+
+  const controls = document.createElement('div');
+  controls.className = 'admin-controls';
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.placeholder = 'Cerca per email...';
+  searchInput.className = 'admin-search';
+  controls.appendChild(searchInput);
+
+  container.appendChild(controls);
+
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'admin-table-wrap';
+  container.appendChild(tableWrap);
+
+  let currentOffset = 0;
+  const pageSize = 25;
+
+  async function loadWaitlist(search, offset) {
+    tableWrap.textContent = 'Caricamento...';
+    try {
+      const params = { limit: pageSize, offset };
+      if (search) params.search = search;
+      const res = await api.adminWaitlist(params);
+      renderWaitlistTable(tableWrap, res.waitlist, res.total, offset, pageSize, (newOffset) => {
+        currentOffset = newOffset;
+        loadWaitlist(searchInput.value.trim(), currentOffset);
+      });
+    } catch (err) {
+      tableWrap.textContent = 'Errore: ' + err.message;
+    }
+  }
+
+  let searchTimer;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      currentOffset = 0;
+      loadWaitlist(searchInput.value.trim(), 0);
+    }, 400);
+  });
+
+  loadWaitlist('', 0);
+}
+
+function renderWaitlistTable(container, entries, total, offset, pageSize, onPageChange) {
+  container.textContent = '';
+
+  if (entries.length === 0) {
+    container.textContent = 'Nessuna email in waitlist.';
+    return;
+  }
+
+  const table = document.createElement('table');
+  table.className = 'admin-table';
+
+  const thead = document.createElement('thead');
+  const hRow = document.createElement('tr');
+  for (const col of ['Email', 'Data iscrizione', 'Stato', 'Azioni']) {
+    hRow.appendChild(Object.assign(document.createElement('th'), { textContent: col }));
+  }
+  thead.appendChild(hRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  for (const entry of entries) {
+    const row = document.createElement('tr');
+
+    row.appendChild(Object.assign(document.createElement('td'), { textContent: entry.email }));
+    row.appendChild(Object.assign(document.createElement('td'), {
+      textContent: new Date(entry.created_at).toLocaleString('it-IT'),
+    }));
+
+    const statusTd = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = 'admin-badge ' + (entry.invited ? 'active' : 'waitlist');
+    badge.textContent = entry.invited ? 'Invitato' : 'In attesa';
+    statusTd.appendChild(badge);
+    row.appendChild(statusTd);
+
+    const actionsTd = document.createElement('td');
+    if (!entry.invited) {
+      const inviteBtn = document.createElement('button');
+      inviteBtn.className = 'btn-sm btn-primary';
+      inviteBtn.textContent = 'Invia invito';
+      inviteBtn.addEventListener('click', async () => {
+        inviteBtn.disabled = true;
+        inviteBtn.textContent = '...';
+        try {
+          const res = await api.adminInviteWaitlist(entry.id);
+          badge.className = 'admin-badge active';
+          badge.textContent = 'Invitato';
+          inviteBtn.remove();
+
+          const codeEl = document.createElement('code');
+          codeEl.textContent = res.code;
+          codeEl.style.fontSize = '0.85em';
+          actionsTd.appendChild(codeEl);
+        } catch (err) {
+          alert('Errore: ' + err.message);
+          inviteBtn.disabled = false;
+          inviteBtn.textContent = 'Invia invito';
+        }
+      });
+      actionsTd.appendChild(inviteBtn);
+    } else {
+      actionsTd.textContent = '—';
+    }
+    row.appendChild(actionsTd);
+
+    tbody.appendChild(row);
+  }
+  table.appendChild(tbody);
+  container.appendChild(table);
+
+  // Pagination
+  const totalPages = Math.ceil(total / pageSize);
+  const currentPage = Math.floor(offset / pageSize) + 1;
+
+  if (totalPages > 1) {
+    const pag = document.createElement('div');
+    pag.className = 'admin-pagination';
+    pag.textContent = `Pagina ${currentPage} di ${totalPages} (${total} email)`;
+
+    if (offset > 0) {
+      const prev = document.createElement('button');
+      prev.className = 'btn-sm';
+      prev.textContent = '\u2190 Precedente';
+      prev.addEventListener('click', () => onPageChange(offset - pageSize));
+      pag.prepend(prev);
+    }
+    if (offset + pageSize < total) {
+      const next = document.createElement('button');
+      next.className = 'btn-sm';
+      next.textContent = 'Successiva \u2192';
+      next.addEventListener('click', () => onPageChange(offset + pageSize));
+      pag.appendChild(next);
+    }
+
+    container.appendChild(pag);
   }
 }
 

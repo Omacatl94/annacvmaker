@@ -1,4 +1,5 @@
 import { api } from './api.js';
+import { icon } from './icons.js';
 
 /**
  * Handle the full CV upload + OCR parsing flow.
@@ -35,19 +36,19 @@ export function createUploadZone(onParsed) {
   const zone = document.createElement('div');
   zone.className = 'upload-zone';
 
-  const icon = document.createElement('div');
-  icon.className = 'upload-icon';
-  icon.textContent = '\u{1F4C4}';
-  zone.appendChild(icon);
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'upload-icon';
+  iconWrap.appendChild(icon('file-up', { size: 36 }));
+  zone.appendChild(iconWrap);
 
   const text = document.createElement('p');
   text.className = 'upload-text';
-  text.textContent = 'Trascina qui il tuo CV (PDF, DOCX, immagine) oppure clicca per selezionare';
+  text.textContent = 'Trascina il CV qui (PDF, DOCX, immagine) o clicca per scegliere';
   zone.appendChild(text);
 
   const subtext = document.createElement('p');
   subtext.className = 'upload-subtext';
-  subtext.textContent = 'Il CV verr\u00e0 analizzato con AI e i campi verranno pre-compilati';
+  subtext.textContent = 'L\'AI legge il tuo CV e pre-compila tutti i campi';
   zone.appendChild(subtext);
 
   // Loading state elements
@@ -60,7 +61,7 @@ export function createUploadZone(onParsed) {
   loadingDiv.appendChild(spinner);
 
   const loadingText = document.createElement('p');
-  loadingText.textContent = 'Analisi del CV in corso...';
+  loadingText.textContent = 'Stiamo leggendo il tuo CV...';
   loadingDiv.appendChild(loadingText);
 
   zone.appendChild(loadingDiv);
@@ -113,7 +114,7 @@ export function createUploadZone(onParsed) {
     handleCVUpload(
       file,
       (data) => {
-        feedback.textContent = 'CV analizzato con successo! Campi pre-compilati.';
+        feedback.textContent = 'CV letto. Campi pre-compilati — controlla e correggi se serve.';
         feedback.className = 'upload-feedback success';
         feedback.style.display = 'block';
         onParsed(data);
@@ -125,13 +126,13 @@ export function createUploadZone(onParsed) {
       },
       (loading) => {
         if (loading) {
-          icon.style.display = 'none';
+          iconWrap.style.display = 'none';
           text.style.display = 'none';
           subtext.style.display = 'none';
           loadingDiv.style.display = 'flex';
           feedback.style.display = 'none';
         } else {
-          icon.style.display = '';
+          iconWrap.style.display = '';
           text.style.display = '';
           subtext.style.display = '';
           loadingDiv.style.display = 'none';

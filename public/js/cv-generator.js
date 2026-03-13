@@ -1,13 +1,18 @@
 import { api } from './api.js';
+import { icon } from './icons.js';
+import { track } from './analytics.js';
 
 let generatedData = null;
 let selectedStyle = 'professional';
 let selectedLang = 'it';
+let extractedKeywords = null;
 
 export function getGeneratedData() { return generatedData; }
 export function setGeneratedData(data) { generatedData = data; }
 export function getSelectedStyle() { return selectedStyle; }
 export function getSelectedLang() { return selectedLang; }
+export function getExtractedKeywords() { return extractedKeywords; }
+export function setExtractedKeywords(kw) { extractedKeywords = kw; }
 
 /**
  * Renders the generation step: JD input, style picker, generate button.
@@ -30,11 +35,11 @@ export function renderGenerationStep(container, profile, onGenerated) {
   const jdGroup = document.createElement('div');
   jdGroup.className = 'form-group';
   const jdLabel = document.createElement('label');
-  jdLabel.textContent = 'Job Description (incolla qui l\'annuncio)';
+  jdLabel.textContent = 'Incolla l\'annuncio';
   jdGroup.appendChild(jdLabel);
   const jdInput = document.createElement('textarea');
   jdInput.className = 'jd-textarea';
-  jdInput.placeholder = 'Incolla qui la job description del ruolo per cui ti candidi...';
+  jdInput.placeholder = 'Incolla qui la job description. Piu\' e\' dettagliata, meglio lavora l\'AI.';
   jdInput.style.minHeight = '200px';
   jdGroup.appendChild(jdInput);
   section.appendChild(jdGroup);
@@ -113,6 +118,38 @@ export function renderGenerationStep(container, profile, onGenerated) {
   styleGroup.appendChild(stylesRow);
   section.appendChild(styleGroup);
 
+  // Fit Score card (appears after JD is filled)
+  const fitScoreCard = document.createElement('div');
+  fitScoreCard.className = 'fit-score-card';
+  fitScoreCard.style.display = 'none';
+  section.appendChild(fitScoreCard);
+
+  // Debounced fit score fetch — fires on JD blur or paste
+  let fitScoreTimer = null;
+  let lastJdChecked = '';
+  function triggerFitScore() {
+    const jd = jdInput.value.trim();
+    if (!jd || jd.length < 80 || jd === lastJdChecked) return;
+    lastJdChecked = jd;
+
+    clearTimeout(fitScoreTimer);
+    fitScoreTimer = setTimeout(async () => {
+      fitScoreCard.style.display = 'block';
+      fitScoreCard.className = 'fit-score-card loading';
+      fitScoreCard.textContent = 'Analisi compatibilita\' in corso...';
+
+      try {
+        const result = await api.fitScore({ profile, jobDescription: jd, language: selectedLang });
+        track('fit_score', { score: result.score });
+        renderFitScore(fitScoreCard, result);
+      } catch {
+        fitScoreCard.style.display = 'none';
+      }
+    }, 800);
+  }
+  jdInput.addEventListener('blur', triggerFitScore);
+  jdInput.addEventListener('paste', () => setTimeout(triggerFitScore, 100));
+
   // Progress bar
   const progressContainer = document.createElement('div');
   progressContainer.className = 'progress-container';
@@ -139,7 +176,7 @@ export function renderGenerationStep(container, profile, onGenerated) {
   generateBtn.addEventListener('click', async () => {
     const jd = jdInput.value.trim();
     if (!jd) {
-      status.textContent = 'Inserisci una job description.';
+      status.textContent = 'Serve l\'annuncio. Incolla la job description qui sopra.';
       status.className = 'generation-status error';
       return;
     }
@@ -155,35 +192,85 @@ export function renderGenerationStep(container, profile, onGenerated) {
     }
 
     try {
-      setProgress(10, 'Analisi della job description...');
-      await sleep(400);
-      setProgress(30, 'Invio richiesta a Claude Opus...');
-
-      const result = await api.generate({
-        profile,
+      // === PHASE 1: Extract keywords (Haiku — fast & cheap) ===
+      setProgress(10, 'Analizziamo l\'annuncio...');
+      const kwResult = await api.extractKeywords({
         jobDescription: jd,
         language: selectedLang,
-        style: selectedStyle,
       });
+      extractedKeywords = kwResult;
+      track('keywords_extracted', { count: (kwResult.keywords || []).length });
+      setProgress(20, 'Keyword individuate. Seleziona quelle da incorporare.');
 
-      setProgress(80, 'Rendering del CV...');
-      await sleep(300);
-
-      generatedData = result;
-
-      setProgress(100, 'CV generato con successo!');
-      await sleep(500);
-
+      // === PHASE 2: Keyword review (user interaction) ===
       progressContainer.style.display = 'none';
-      status.textContent = 'CV generato con successo!';
-      status.className = 'generation-status success';
+      await showKeywordReview(section, kwResult, async (selectedKw) => {
+        // === PHASE 3: Generate with target keywords ===
+        setProgress(30, 'Costruiamo il tuo CV con le keyword target...');
 
-      if (onGenerated) onGenerated(result, jd);
+        const result = await api.generate({
+          profile,
+          jobDescription: jd,
+          language: selectedLang,
+          style: selectedStyle,
+          targetKeywords: selectedKw,
+        });
+
+        setProgress(80, 'Quasi fatto...');
+        await sleep(300);
+
+        generatedData = result;
+        track('cv_generated', { language: selectedLang, style: selectedStyle, targeted: true });
+
+        setProgress(100, 'CV pronto.');
+        await sleep(500);
+
+        progressContainer.style.display = 'none';
+        status.textContent = 'CV pronto. Vediamo come se la cava con l\'ATS.';
+        status.className = 'generation-status success';
+
+        if (onGenerated) onGenerated(result, jd);
+      }, async () => {
+        // "Salta" fallback — generate without target keywords
+        setProgress(30, 'Costruiamo il tuo CV...');
+        extractedKeywords = null;
+
+        const result = await api.generate({
+          profile,
+          jobDescription: jd,
+          language: selectedLang,
+          style: selectedStyle,
+        });
+
+        setProgress(80, 'Quasi fatto...');
+        await sleep(300);
+
+        generatedData = result;
+        track('cv_generated', { language: selectedLang, style: selectedStyle, targeted: false });
+
+        setProgress(100, 'CV pronto.');
+        await sleep(500);
+
+        progressContainer.style.display = 'none';
+        status.textContent = 'CV pronto. Vediamo come se la cava con l\'ATS.';
+        status.className = 'generation-status success';
+
+        if (onGenerated) onGenerated(result, jd);
+      });
 
     } catch (err) {
       progressContainer.style.display = 'none';
-      status.textContent = 'Errore: ' + err.message;
-      status.className = 'generation-status error';
+      if (err.message === 'Crediti insufficienti' || err.message === 'Limite giornaliero raggiunto') {
+        const { showPricingModal } = await import('./pricing.js');
+        status.textContent = err.message === 'Limite giornaliero raggiunto'
+          ? 'Limite giornaliero raggiunto. Condividi il tuo link referral per ottenere crediti extra!'
+          : 'Crediti esauriti. Ricarica per continuare.';
+        status.className = 'generation-status error';
+        showPricingModal();
+      } else {
+        status.textContent = 'Qualcosa non ha funzionato. ' + err.message;
+        status.className = 'generation-status error';
+      }
     } finally {
       generateBtn.disabled = false;
     }
@@ -235,17 +322,20 @@ export function renderCVPreview(container, profile, data, style) {
   contacts.className = 'cv-contacts';
   if (profile.personal.email) {
     const emailSpan = document.createElement('span');
-    emailSpan.textContent = '\u2709 ' + profile.personal.email;
+    emailSpan.appendChild(icon('mail', { size: 14 }));
+    emailSpan.appendChild(document.createTextNode(' ' + profile.personal.email));
     contacts.appendChild(emailSpan);
   }
   if (profile.personal.phone) {
     const phoneSpan = document.createElement('span');
-    phoneSpan.textContent = '\u260E ' + profile.personal.phone;
+    phoneSpan.appendChild(icon('phone', { size: 14 }));
+    phoneSpan.appendChild(document.createTextNode(' ' + profile.personal.phone));
     contacts.appendChild(phoneSpan);
   }
   if (profile.personal.location) {
     const locSpan = document.createElement('span');
-    locSpan.textContent = '\u25CB ' + profile.personal.location;
+    locSpan.appendChild(icon('map-pin', { size: 14 }));
+    locSpan.appendChild(document.createTextNode(' ' + profile.personal.location));
     contacts.appendChild(locSpan);
   }
   headerText.appendChild(contacts);
@@ -409,4 +499,337 @@ export function renderCVPreview(container, profile, data, style) {
   container.appendChild(cvWrapper);
 }
 
+/**
+ * Shows an interactive keyword review panel.
+ * User can check/uncheck keywords before generation.
+ * @param {HTMLElement} container - parent to append panel to
+ * @param {Object} kwResult - { keywords, roleTitle, domain }
+ * @param {Function} onConfirm - called with selected keywords array
+ * @param {Function} onSkip - called when user skips keyword targeting
+ */
+function showKeywordReview(container, kwResult, onConfirm, onSkip) {
+  return new Promise((resolve) => {
+    // Remove any existing review panel
+    const existing = container.querySelector('.keyword-review-panel');
+    if (existing) existing.remove();
+
+    const panel = document.createElement('div');
+    panel.className = 'keyword-review-panel card';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'kw-review-header';
+    const title = document.createElement('h3');
+    title.textContent = 'Keyword dall\'annuncio';
+    header.appendChild(title);
+    if (kwResult.roleTitle) {
+      const subtitle = document.createElement('span');
+      subtitle.className = 'kw-review-subtitle';
+      subtitle.textContent = kwResult.roleTitle + (kwResult.domain ? ' — ' + kwResult.domain : '');
+      header.appendChild(subtitle);
+    }
+    panel.appendChild(header);
+
+    const desc = document.createElement('p');
+    desc.className = 'kw-review-desc';
+    desc.textContent = 'Queste sono le keyword che l\'ATS cerchera\' nel tuo CV. Deseleziona quelle che non ti rappresentano.';
+    panel.appendChild(desc);
+
+    // Group keywords by priority
+    const groups = { high: [], medium: [], low: [] };
+    (kwResult.keywords || []).forEach(kw => {
+      if (groups[kw.priority]) groups[kw.priority].push(kw);
+      else groups.medium.push(kw);
+    });
+
+    const groupLabels = {
+      high: { label: 'Must-have', cssClass: 'kw-priority-high' },
+      medium: { label: 'Nice-to-have', cssClass: 'kw-priority-medium' },
+      low: { label: 'Opzionali', cssClass: 'kw-priority-low' },
+    };
+
+    Object.entries(groups).forEach(([priority, keywords]) => {
+      if (keywords.length === 0) return;
+
+      const group = document.createElement('div');
+      group.className = 'kw-priority-group';
+
+      const groupLabel = document.createElement('div');
+      groupLabel.className = 'kw-group-label ' + groupLabels[priority].cssClass;
+      groupLabel.textContent = groupLabels[priority].label + ' (' + keywords.length + ')';
+      group.appendChild(groupLabel);
+
+      const tagsWrap = document.createElement('div');
+      tagsWrap.className = 'kw-tags-wrap';
+
+      keywords.forEach(kw => {
+        const tag = document.createElement('label');
+        tag.className = 'kw-review-tag ' + groupLabels[priority].cssClass;
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = priority !== 'low'; // high and medium checked by default
+        cb.dataset.term = kw.term;
+        cb.dataset.priority = kw.priority;
+        cb.dataset.category = kw.category;
+        tag.appendChild(cb);
+
+        const span = document.createElement('span');
+        span.textContent = kw.term;
+        tag.appendChild(span);
+
+        const catBadge = document.createElement('small');
+        catBadge.className = 'kw-cat-badge';
+        catBadge.textContent = kw.category;
+        tag.appendChild(catBadge);
+
+        tagsWrap.appendChild(tag);
+      });
+
+      group.appendChild(tagsWrap);
+      panel.appendChild(group);
+    });
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'kw-review-actions';
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn-primary';
+    confirmBtn.textContent = 'Conferma e genera';
+    confirmBtn.addEventListener('click', () => {
+      const selected = [];
+      panel.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+        selected.push({
+          term: cb.dataset.term,
+          priority: cb.dataset.priority,
+          category: cb.dataset.category,
+        });
+      });
+      panel.remove();
+      onConfirm(selected).then(resolve);
+    });
+    actions.appendChild(confirmBtn);
+
+    const skipLink = document.createElement('button');
+    skipLink.className = 'btn-secondary';
+    skipLink.textContent = 'Salta (genera senza target)';
+    skipLink.addEventListener('click', () => {
+      panel.remove();
+      onSkip().then(resolve);
+    });
+    actions.appendChild(skipLink);
+
+    panel.appendChild(actions);
+    container.appendChild(panel);
+  });
+}
+
+function renderFitScore(card, result) {
+  card.textContent = '';
+  card.className = 'fit-score-card';
+
+  const scoreCircle = document.createElement('div');
+  scoreCircle.className = 'fit-score-circle';
+  const score = Math.round(result.score || 0);
+
+  // Color based on score
+  let scoreClass = 'poor';
+  if (score >= 80) scoreClass = 'strong';
+  else if (score >= 60) scoreClass = 'decent';
+  else if (score >= 40) scoreClass = 'partial';
+  scoreCircle.classList.add('fit-' + scoreClass);
+
+  const scoreNum = document.createElement('span');
+  scoreNum.className = 'fit-score-num';
+  scoreNum.textContent = score;
+  scoreCircle.appendChild(scoreNum);
+
+  const scoreLabel = document.createElement('span');
+  scoreLabel.className = 'fit-score-label';
+  scoreLabel.textContent = '/100';
+  scoreCircle.appendChild(scoreLabel);
+  card.appendChild(scoreCircle);
+
+  const info = document.createElement('div');
+  info.className = 'fit-score-info';
+
+  const summary = document.createElement('p');
+  summary.className = 'fit-score-summary';
+  summary.textContent = result.summary || '';
+  info.appendChild(summary);
+
+  if (result.strengths && result.strengths.length > 0) {
+    const strengths = document.createElement('div');
+    strengths.className = 'fit-score-list strengths';
+    const sLabel = document.createElement('strong');
+    sLabel.textContent = 'Punti di forza: ';
+    strengths.appendChild(sLabel);
+    strengths.appendChild(document.createTextNode(result.strengths.join(' \u00B7 ')));
+    info.appendChild(strengths);
+  }
+
+  if (result.gaps && result.gaps.length > 0) {
+    const gaps = document.createElement('div');
+    gaps.className = 'fit-score-list gaps';
+    const gLabel = document.createElement('strong');
+    gLabel.textContent = 'Gap: ';
+    gaps.appendChild(gLabel);
+    gaps.appendChild(document.createTextNode(result.gaps.join(' \u00B7 ')));
+    info.appendChild(gaps);
+  }
+
+  card.appendChild(info);
+}
+
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/**
+ * One-Tap generation: paste JD → generate CV in one click, no keyword review.
+ * For users who already have a complete profile.
+ * @param {HTMLElement} container
+ * @param {Object} profile - The CV profile data (must have experiences)
+ * @param {Function} onGenerated - Called with (result, jd) on success
+ */
+export function renderOneTap(container, profile, onGenerated) {
+  const section = document.createElement('div');
+  section.className = 'one-tap-section';
+
+  // Title
+  const title = document.createElement('h3');
+  title.textContent = 'Genera CV per un nuovo annuncio';
+  section.appendChild(title);
+
+  // Hint
+  const hint = document.createElement('p');
+  hint.className = 'one-tap-hint';
+  hint.textContent = 'Incolla un annuncio e genera il CV in un click. Usa il tuo profilo attuale.';
+  section.appendChild(hint);
+
+  // JD textarea
+  const jdInput = document.createElement('textarea');
+  jdInput.className = 'jd-textarea';
+  jdInput.placeholder = 'Incolla qui la job description...';
+  jdInput.style.minHeight = '120px';
+  section.appendChild(jdInput);
+
+  // Language selector
+  let otLang = 'it';
+  const langRow = document.createElement('div');
+  langRow.className = 'one-tap-options';
+
+  ['it', 'en'].forEach(lang => {
+    const btn = document.createElement('button');
+    btn.className = 'lang-btn' + (lang === otLang ? ' active' : '');
+    btn.textContent = lang === 'it' ? 'IT' : 'EN';
+    btn.addEventListener('click', () => {
+      otLang = lang;
+      langRow.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    langRow.appendChild(btn);
+  });
+  section.appendChild(langRow);
+
+  // Progress bar
+  const progressContainer = document.createElement('div');
+  progressContainer.className = 'progress-container';
+  progressContainer.style.display = 'none';
+  const progressBar = document.createElement('div');
+  progressBar.className = 'progress-bar';
+  const progressFill = document.createElement('div');
+  progressFill.className = 'progress-bar-fill';
+  progressBar.appendChild(progressFill);
+  progressContainer.appendChild(progressBar);
+  const progressStep = document.createElement('div');
+  progressStep.className = 'progress-step';
+  progressContainer.appendChild(progressStep);
+  section.appendChild(progressContainer);
+
+  // Status
+  const status = document.createElement('div');
+  status.className = 'generation-status';
+  section.appendChild(status);
+
+  // Generate button
+  const generateBtn = document.createElement('button');
+  generateBtn.className = 'btn-primary btn-generate';
+  generateBtn.textContent = 'Genera CV';
+  generateBtn.addEventListener('click', async () => {
+    const jd = jdInput.value.trim();
+    if (!jd) {
+      status.textContent = 'Incolla un annuncio prima di generare.';
+      status.className = 'generation-status error';
+      return;
+    }
+
+    generateBtn.disabled = true;
+    status.textContent = '';
+    status.className = 'generation-status';
+
+    function setProgress(pct, text) {
+      progressContainer.style.display = 'block';
+      progressFill.style.width = pct + '%';
+      progressStep.textContent = text;
+    }
+
+    try {
+      // Phase 1: extract keywords
+      setProgress(10, 'Analizziamo l\'annuncio...');
+      const kwResult = await api.extractKeywords({
+        jobDescription: jd,
+        language: otLang,
+      });
+      extractedKeywords = kwResult;
+
+      // Auto-select ALL keywords (no review step)
+      const allKeywords = (kwResult.keywords || []).map(kw => ({
+        term: kw.term,
+        priority: kw.priority,
+        category: kw.category,
+      }));
+
+      // Phase 2: generate with all keywords
+      setProgress(30, 'Costruiamo il tuo CV...');
+      const result = await api.generate({
+        profile,
+        jobDescription: jd,
+        language: otLang,
+        style: selectedStyle,
+        targetKeywords: allKeywords,
+      });
+
+      setProgress(80, 'Quasi fatto...');
+      await sleep(300);
+
+      generatedData = result;
+      track('cv_generated', { language: otLang, style: selectedStyle, oneTap: true });
+
+      setProgress(100, 'CV pronto.');
+      await sleep(500);
+
+      progressContainer.style.display = 'none';
+      status.textContent = '';
+
+      if (onGenerated) onGenerated(result, jd);
+    } catch (err) {
+      progressContainer.style.display = 'none';
+      if (err.message === 'Crediti insufficienti' || err.message === 'Limite giornaliero raggiunto') {
+        const { showPricingModal } = await import('./pricing.js');
+        status.textContent = err.message === 'Limite giornaliero raggiunto'
+          ? 'Limite giornaliero raggiunto. Condividi il tuo link referral per ottenere crediti extra!'
+          : 'Crediti esauriti. Ricarica per continuare.';
+        status.className = 'generation-status error';
+        showPricingModal();
+      } else {
+        status.textContent = 'Qualcosa non ha funzionato. ' + err.message;
+        status.className = 'generation-status error';
+      }
+    } finally {
+      generateBtn.disabled = false;
+    }
+  });
+  section.appendChild(generateBtn);
+
+  container.appendChild(section);
+}

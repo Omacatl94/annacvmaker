@@ -1,5 +1,7 @@
 import { adminGuard } from '../middleware/auth-guard.js';
 import { openrouter } from '../services/openrouter.js';
+import { generateInviteCodes, WELCOME_CREDITS, BATCH_1_SIZE } from '../services/invites.js';
+import { sendWelcomeEmail } from '../services/email.js';
 
 export default async function adminRoutes(app) {
   app.addHook('preHandler', adminGuard);
@@ -165,7 +167,7 @@ export default async function adminRoutes(app) {
     params.push(lim, off);
 
     const { rows } = await app.db.query(`
-      SELECT u.id, u.email, u.name, u.role, u.credits, u.created_at,
+      SELECT u.id, u.email, u.name, u.role, u.status, u.credits, u.created_at,
         (u.google_id IS NOT NULL) as google_linked,
         (u.linkedin_id IS NOT NULL) as linkedin_linked,
         (SELECT COUNT(*) FROM generated_cvs g JOIN cv_profiles cp ON g.profile_id = cp.id WHERE cp.user_id = u.id) as cvs_generated,
@@ -228,6 +230,40 @@ export default async function adminRoutes(app) {
     );
 
     reply.send({ ok: true, credits });
+  });
+
+  // ── Activate waitlist user ──
+  app.put('/users/:id/activate', async (req, reply) => {
+    const { id } = req.params;
+
+    const userRes = await app.db.query('SELECT id, email, name, status FROM users WHERE id = $1', [id]);
+    const user = userRes.rows[0];
+    if (!user) return reply.code(404).send({ error: 'User not found' });
+    if (user.status === 'active') return reply.code(400).send({ error: 'User already active' });
+
+    // Activate + welcome credits
+    await app.db.query(
+      'UPDATE users SET status = $1, credits = credits + $2 WHERE id = $3',
+      ['active', WELCOME_CREDITS, id]
+    );
+
+    // Generate invite codes (batch 1)
+    await generateInviteCodes(app.db, id, 1);
+
+    // Audit
+    await app.db.query(
+      `INSERT INTO audit_logs (user_id, action, ip, user_agent, metadata)
+       VALUES ($1, 'admin_activate_user', $2, $3, $4)`,
+      [req.user.id, req.ip, req.headers['user-agent']?.substring(0, 500) || null,
+       JSON.stringify({ targetUser: id, credits: WELCOME_CREDITS })]
+    );
+
+    // Welcome email (fire-and-forget)
+    sendWelcomeEmail(user.email, user.name).catch(err => {
+      req.log.error({ err, userId: id }, 'Failed to send welcome email');
+    });
+
+    reply.send({ ok: true });
   });
 
   // ── Audit logs ──

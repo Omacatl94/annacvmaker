@@ -10,6 +10,8 @@ export function renderLanding(root) {
   const page = document.createElement('div');
   page.className = 'landing-page';
 
+  const hasInvite = !!localStorage.getItem('jh_invite_code');
+
   // ── Nav ──
   const nav = document.createElement('nav');
   nav.className = 'landing-nav';
@@ -53,7 +55,8 @@ export function renderLanding(root) {
   loginLink.textContent = t('landing.loginLink');
   loginLink.addEventListener('click', (e) => {
     e.preventDefault();
-    showLoginSection(page);
+    const section = page.querySelector('.landing-login-section');
+    if (section) section.scrollIntoView({ behavior: 'smooth' });
   });
   navRight.appendChild(loginLink);
 
@@ -90,28 +93,13 @@ export function renderLanding(root) {
   const heroCTA = document.createElement('div');
   heroCTA.className = 'landing-hero-cta';
 
-  const hasInvite = !!localStorage.getItem('jh_invite_code');
-
   const tryBtn = document.createElement('button');
   tryBtn.className = 'btn-primary btn-lg';
-  tryBtn.textContent = hasInvite ? t('landing.inviteCTA') : t('landing.tryFree');
-  tryBtn.addEventListener('click', async () => {
+  tryBtn.textContent = hasInvite ? t('landing.inviteCTA') : t('landing.waitlistTitle');
+  tryBtn.addEventListener('click', () => {
     track('landing_cta_click', { position: 'hero', hasInvite });
-    if (hasInvite) {
-      // Go to login — after OAuth, app.js will auto-claim the invite
-      showLoginSection(page);
-    } else {
-      tryBtn.disabled = true;
-      tryBtn.textContent = t('landing.wait');
-      try {
-        await api.guestLogin();
-        track('signup', { method: 'guest' });
-        navigate();
-      } catch {
-        tryBtn.disabled = false;
-        tryBtn.textContent = t('landing.tryFree');
-      }
-    }
+    const section = page.querySelector('.landing-login-section');
+    if (section) section.scrollIntoView({ behavior: 'smooth' });
   });
   heroCTA.appendChild(tryBtn);
 
@@ -182,7 +170,7 @@ export function renderLanding(root) {
   problem.appendChild(problemGrid);
   page.appendChild(problem);
 
-  // ── Comparison ──
+  // ── Comparison (card layout) ──
   const comparison = document.createElement('section');
   comparison.className = 'landing-section landing-section-alt';
 
@@ -191,49 +179,52 @@ export function renderLanding(root) {
   compTitle.textContent = t('landing.compTitle');
   comparison.appendChild(compTitle);
 
-  const tableWrap = document.createElement('div');
-  tableWrap.className = 'comparison-table-wrap';
+  const compCards = document.createElement('div');
+  compCards.className = 'comp-cards';
 
-  const table = document.createElement('table');
-  table.className = 'comparison-table';
-
-  // Header
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-  ['', t('landing.compHeader1'), t('landing.compHeader2'), t('landing.compHeader3')].forEach((text, i) => {
-    const th = document.createElement('th');
-    th.textContent = text;
-    if (i === 3) th.className = 'comp-highlight';
-    headerRow.appendChild(th);
-  });
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-
-  // Body
-  const tbody = document.createElement('tbody');
-  const rows = [
-    [t('landing.compRow1Label'), t('landing.compRow1A'), t('landing.compRow1B'), t('landing.compRow1C')],
-    [t('landing.compRow2Label'), t('landing.compRow2A'), t('landing.compRow2B'), t('landing.compRow2C')],
-    [t('landing.compRow3Label'), t('landing.compRow3A'), t('landing.compRow3B'), t('landing.compRow3C')],
-    [t('landing.compRow4Label'), t('landing.compRow4A'), t('landing.compRow4B'), t('landing.compRow4C')],
-    [t('landing.compRow5Label'), t('landing.compRow5A'), t('landing.compRow5B'), t('landing.compRow5C')],
+  const rowLabels = [
+    t('landing.compRow1Label'),
+    t('landing.compRow2Label'),
+    t('landing.compRow3Label'),
+    t('landing.compRow4Label'),
+    t('landing.compRow5Label'),
   ];
 
-  for (const rowData of rows) {
-    const tr = document.createElement('tr');
-    rowData.forEach((text, i) => {
-      const td = document.createElement('td');
-      td.textContent = text;
-      if (i === 0) td.className = 'comp-label';
-      if (i === 3) td.className = 'comp-highlight';
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
-  }
-  table.appendChild(tbody);
+  const cardDefs = [
+    { header: t('landing.compHeader1'), values: [t('landing.compRow1A'), t('landing.compRow2A'), t('landing.compRow3A'), t('landing.compRow4A'), t('landing.compRow5A')], highlight: false },
+    { header: t('landing.compHeader2'), values: [t('landing.compRow1B'), t('landing.compRow2B'), t('landing.compRow3B'), t('landing.compRow4B'), t('landing.compRow5B')], highlight: false },
+    { header: t('landing.compHeader3'), values: [t('landing.compRow1C'), t('landing.compRow2C'), t('landing.compRow3C'), t('landing.compRow4C'), t('landing.compRow5C')], highlight: true },
+  ];
 
-  tableWrap.appendChild(table);
-  comparison.appendChild(tableWrap);
+  for (const def of cardDefs) {
+    const card = document.createElement('div');
+    card.className = def.highlight ? 'comp-card comp-card-highlight' : 'comp-card';
+
+    const cardH3 = document.createElement('h3');
+    cardH3.textContent = def.header;
+    card.appendChild(cardH3);
+
+    for (let i = 0; i < rowLabels.length; i++) {
+      const row = document.createElement('div');
+      row.className = 'comp-row';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'comp-row-label';
+      labelSpan.textContent = rowLabels[i];
+      row.appendChild(labelSpan);
+
+      const valueSpan = document.createElement('span');
+      valueSpan.className = 'comp-row-value';
+      valueSpan.textContent = def.values[i];
+      row.appendChild(valueSpan);
+
+      card.appendChild(row);
+    }
+
+    compCards.appendChild(card);
+  }
+
+  comparison.appendChild(compCards);
   page.appendChild(comparison);
 
   // ── How it works ──
@@ -370,10 +361,6 @@ export function renderLanding(root) {
   priceSubtitle.textContent = t('landing.pricingSubtitle');
   pricing.appendChild(priceSubtitle);
 
-  const priceGrid = document.createElement('div');
-  priceGrid.className = 'landing-grid-4';
-
-  // Open Beta: single card instead of pricing tiers
   const betaCard = document.createElement('div');
   betaCard.className = 'landing-price-card highlighted beta-card';
 
@@ -389,17 +376,15 @@ export function renderLanding(root) {
 
   const betaDetail = document.createElement('div');
   betaDetail.className = 'price-detail';
-  betaDetail.textContent = '5 CV / giorno';
+  betaDetail.textContent = t('beta.landingText');
   betaCard.appendChild(betaDetail);
 
   const betaPerCv = document.createElement('div');
   betaPerCv.className = 'price-per-cv';
-  betaPerCv.textContent = 'Gratis, per un periodo limitato';
+  betaPerCv.textContent = t('beta.modalHint');
   betaCard.appendChild(betaPerCv);
 
-  priceGrid.appendChild(betaCard);
-
-  pricing.appendChild(priceGrid);
+  pricing.appendChild(betaCard);
   page.appendChild(pricing);
 
   // ── Final CTA ──
@@ -418,26 +403,126 @@ export function renderLanding(root) {
 
   const ctaBtn = document.createElement('button');
   ctaBtn.className = 'btn-primary btn-lg';
-  ctaBtn.textContent = hasInvite ? t('landing.inviteCTA') : t('landing.ctaBtn');
-  ctaBtn.addEventListener('click', async () => {
+  ctaBtn.textContent = hasInvite ? t('landing.inviteCTA') : t('landing.waitlistTitle');
+  ctaBtn.addEventListener('click', () => {
     track('landing_cta_click', { position: 'final', hasInvite });
-    if (hasInvite) {
-      showLoginSection(page);
-    } else {
-      ctaBtn.disabled = true;
-      ctaBtn.textContent = t('landing.wait');
-      try {
-        await api.guestLogin();
-        track('signup', { method: 'guest' });
-        navigate();
-      } catch {
-        ctaBtn.disabled = false;
-        ctaBtn.textContent = hasInvite ? t('landing.inviteCTA') : t('landing.ctaBtn');
-      }
-    }
+    const section = page.querySelector('.landing-login-section');
+    if (section) section.scrollIntoView({ behavior: 'smooth' });
   });
   finalCta.appendChild(ctaBtn);
   page.appendChild(finalCta);
+
+  // ── Login section (inline, before footer) ──
+  const loginSection = document.createElement('section');
+  loginSection.className = 'landing-section landing-login-section';
+
+  const loginCard = document.createElement('div');
+  loginCard.className = 'login-card';
+
+  if (hasInvite) {
+    // ── Invite state: OAuth buttons ──
+    const loginH2 = document.createElement('h2');
+    loginH2.textContent = t('landing.inviteCTA');
+    loginCard.appendChild(loginH2);
+
+    const loginSub = document.createElement('p');
+    loginSub.className = 'login-subtitle';
+    loginSub.textContent = t('landing.inviteBadge') + '. ' + t('landing.loginLink') + ' per attivarlo.';
+    loginCard.appendChild(loginSub);
+
+    const buttons = document.createElement('div');
+    buttons.className = 'login-buttons';
+
+    const googleBtn = document.createElement('a');
+    googleBtn.href = '/api/auth/google';
+    googleBtn.className = 'login-btn google-btn';
+    googleBtn.textContent = t('auth.google');
+    buttons.appendChild(googleBtn);
+
+    const linkedinBtn = document.createElement('a');
+    linkedinBtn.href = '/api/auth/linkedin';
+    linkedinBtn.className = 'login-btn linkedin-btn';
+    linkedinBtn.textContent = t('auth.linkedin');
+    buttons.appendChild(linkedinBtn);
+
+    loginCard.appendChild(buttons);
+  } else {
+    // ── No invite state: waitlist form ──
+    const loginH2 = document.createElement('h2');
+    loginH2.textContent = t('landing.waitlistTitle');
+    loginCard.appendChild(loginH2);
+
+    const loginSub = document.createElement('p');
+    loginSub.className = 'login-subtitle';
+    loginSub.textContent = t('beta.landingTitle') + '. ' + t('landing.waitlistPlaceholder') + ' e ti avviseremo.';
+    loginCard.appendChild(loginSub);
+
+    const waitlistForm = document.createElement('div');
+    waitlistForm.className = 'waitlist-inline-form';
+
+    const emailInput = document.createElement('input');
+    emailInput.type = 'email';
+    emailInput.placeholder = t('landing.waitlistPlaceholder');
+    emailInput.className = 'waitlist-input';
+    waitlistForm.appendChild(emailInput);
+
+    const waitlistBtn = document.createElement('button');
+    waitlistBtn.className = 'btn-secondary';
+    waitlistBtn.textContent = t('landing.waitlistBtn');
+    waitlistBtn.addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      if (!email) return;
+      waitlistBtn.disabled = true;
+      try {
+        await api.joinWaitlist(email);
+        waitlistForm.textContent = '';
+        const done = document.createElement('p');
+        done.className = 'waitlist-done';
+        done.textContent = t('landing.waitlistDone');
+        waitlistForm.appendChild(done);
+      } catch {
+        waitlistBtn.disabled = false;
+      }
+    });
+    waitlistForm.appendChild(waitlistBtn);
+
+    loginCard.appendChild(waitlistForm);
+
+    // "Hai gia' un codice invito?" toggle
+    const toggle = document.createElement('div');
+    toggle.className = 'landing-login-toggle';
+    toggle.appendChild(document.createTextNode('Hai gi\u00E0 un codice invito? '));
+    const toggleLink = document.createElement('a');
+    toggleLink.textContent = 'Accedi qui';
+    toggleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Replace waitlist with OAuth buttons
+      toggle.style.display = 'none';
+      waitlistForm.style.display = 'none';
+
+      const buttons = document.createElement('div');
+      buttons.className = 'login-buttons';
+
+      const googleBtn = document.createElement('a');
+      googleBtn.href = '/api/auth/google';
+      googleBtn.className = 'login-btn google-btn';
+      googleBtn.textContent = t('auth.google');
+      buttons.appendChild(googleBtn);
+
+      const linkedinBtn = document.createElement('a');
+      linkedinBtn.href = '/api/auth/linkedin';
+      linkedinBtn.className = 'login-btn linkedin-btn';
+      linkedinBtn.textContent = t('auth.linkedin');
+      buttons.appendChild(linkedinBtn);
+
+      loginCard.appendChild(buttons);
+    });
+    toggle.appendChild(toggleLink);
+    loginCard.appendChild(toggle);
+  }
+
+  loginSection.appendChild(loginCard);
+  page.appendChild(loginSection);
 
   // ── Footer ──
   const footer = document.createElement('footer');
@@ -494,114 +579,5 @@ export function renderLanding(root) {
   footer.appendChild(footerContent);
   page.appendChild(footer);
 
-  // Show login section immediately (before footer)
-  showLoginSection(page);
-
   root.appendChild(page);
-}
-
-function showLoginSection(page) {
-  let loginSection = page.querySelector('.landing-login-section');
-  if (loginSection) {
-    loginSection.scrollIntoView({ behavior: 'smooth' });
-    return;
-  }
-
-  loginSection = document.createElement('section');
-  loginSection.className = 'landing-section landing-login-section';
-
-  const card = document.createElement('div');
-  card.className = 'login-card';
-
-  const h2 = document.createElement('h2');
-  h2.textContent = t('landing.loginLink');
-  card.appendChild(h2);
-
-  const buttons = document.createElement('div');
-  buttons.className = 'login-buttons';
-
-  const googleBtn = document.createElement('a');
-  googleBtn.href = '/api/auth/google';
-  googleBtn.className = 'login-btn google-btn';
-  googleBtn.textContent = t('auth.google');
-  buttons.appendChild(googleBtn);
-
-  const linkedinBtn = document.createElement('a');
-  linkedinBtn.href = '/api/auth/linkedin';
-  linkedinBtn.className = 'login-btn linkedin-btn';
-  linkedinBtn.textContent = t('auth.linkedin');
-  buttons.appendChild(linkedinBtn);
-
-  const divider = document.createElement('div');
-  divider.className = 'login-divider';
-  divider.textContent = t('auth.divider');
-  buttons.appendChild(divider);
-
-  const guestBtn = document.createElement('button');
-  guestBtn.className = 'login-btn guest-btn';
-  guestBtn.textContent = t('auth.guest');
-  guestBtn.addEventListener('click', async () => {
-    guestBtn.disabled = true;
-    guestBtn.textContent = t('landing.wait');
-    try {
-      await api.guestLogin();
-      navigate();
-    } catch {
-      guestBtn.disabled = false;
-      guestBtn.textContent = t('auth.guest');
-    }
-  });
-  buttons.appendChild(guestBtn);
-
-  card.appendChild(buttons);
-
-  // Waitlist form (for users without invite)
-  if (!localStorage.getItem('jh_invite_code')) {
-    const waitlistDiv = document.createElement('div');
-    waitlistDiv.className = 'landing-waitlist';
-
-    const waitlistLabel = document.createElement('p');
-    waitlistLabel.className = 'login-subtitle';
-    waitlistLabel.textContent = t('landing.waitlistTitle');
-    waitlistLabel.style.marginTop = '24px';
-    waitlistDiv.appendChild(waitlistLabel);
-
-    const waitlistForm = document.createElement('div');
-    waitlistForm.className = 'waitlist-inline-form';
-
-    const emailInput = document.createElement('input');
-    emailInput.type = 'email';
-    emailInput.placeholder = t('landing.waitlistPlaceholder');
-    emailInput.className = 'waitlist-input';
-    waitlistForm.appendChild(emailInput);
-
-    const waitlistBtn = document.createElement('button');
-    waitlistBtn.className = 'btn-secondary';
-    waitlistBtn.textContent = t('landing.waitlistBtn');
-    waitlistBtn.addEventListener('click', async () => {
-      const email = emailInput.value.trim();
-      if (!email) return;
-      waitlistBtn.disabled = true;
-      try {
-        await api.joinWaitlist(email);
-        waitlistForm.textContent = '';
-        const done = document.createElement('p');
-        done.className = 'waitlist-done';
-        done.textContent = t('landing.waitlistDone');
-        waitlistForm.appendChild(done);
-      } catch {
-        waitlistBtn.disabled = false;
-      }
-    });
-    waitlistForm.appendChild(waitlistBtn);
-
-    waitlistDiv.appendChild(waitlistForm);
-    card.appendChild(waitlistDiv);
-  }
-
-  loginSection.appendChild(card);
-
-  const footer = page.querySelector('.landing-footer');
-  page.insertBefore(loginSection, footer);
-  loginSection.scrollIntoView({ behavior: 'smooth' });
 }

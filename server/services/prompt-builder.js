@@ -8,7 +8,7 @@
  * - Skills pool comes from user's declared skills
  * - Tenure calculations are dynamic per experience
  */
-export function buildGenerationPrompt(profile, jobDescription, language) {
+export function buildGenerationPrompt(profile, jobDescription, language, targetKeywords) {
   const isIt = language === 'it';
   const langLabel = isIt ? 'Italian' : 'English';
   const langInstruction = isIt
@@ -90,7 +90,24 @@ RULE 8 — KEYWORD MIRRORING (CRITICAL FOR ATS):
 - When the JD uses a specific term and the CV data covers the same concept with different words, ALWAYS prefer the JD's exact wording in your output.
 - Apply mirroring to ALL sections: summary, competency badges, bullets, skills line, headline.
 - Do NOT mirror terms that would require inventing skills not in the skillsPool.
-- SELF-CHECK: Before responding, scan the JD for its 10-15 most distinctive terms. For each, verify it appears VERBATIM at least once in your output.
+${targetKeywords ? `
+=== TARGET KEYWORDS (pre-extracted from JD) ===
+
+MUST-HAVE (incorporate each at least once if the candidate has the skill):
+${targetKeywords.filter(k => k.priority === 'high').map(k => `- "${k.term}" [${k.category}]`).join('\n')}
+
+NICE-TO-HAVE (incorporate where natural):
+${targetKeywords.filter(k => k.priority === 'medium').map(k => `- "${k.term}" [${k.category}]`).join('\n')}
+
+OPTIONAL (incorporate only if fits naturally):
+${targetKeywords.filter(k => k.priority === 'low').map(k => `- "${k.term}" [${k.category}]`).join('\n')}
+
+KEYWORD RULES:
+- Incorporate each target keyword NATURALLY into the CV text — do not force or stuff.
+- Only use a keyword if the candidate genuinely has that skill/experience (check skillsPool and bullets).
+- If a keyword cannot be incorporated without inventing, SKIP it.
+- For each target keyword, report whether you incorporated it or skipped it in the output.
+` : `- SELF-CHECK: Before responding, scan the JD for its 10-15 most distinctive terms. For each, verify it appears VERBATIM at least once in your output.`}
 
 === CANDIDATE DATA ===
 
@@ -108,6 +125,7 @@ Before outputting your JSON, verify:
 3. Every experience bullet is a rephrase of an existing bullet — no new facts added.
 4. The summary contains no claims about skills/experience not in the provided data.
 5. KEYWORD MIRRORING CHECK: scan the JD for its 10-15 most important terms. For each, confirm it appears at least once in your output.
+${targetKeywords ? '6. TARGET KEYWORD CHECK: for each target keyword, confirm it is either in keywordsIncorporated (with location) or in keywordsSkipped (with reason). No keyword should be missing from both lists.' : ''}
 If any check fails, fix it before responding.
 
 === OUTPUT FORMAT ===
@@ -125,7 +143,13 @@ Respond with ONLY a valid JSON object (no markdown, no backticks, no explanation
   "omittedExperiences": [
     { "index": 5, "reason": "Not relevant to target role and over budget" }
   ],
-  "skills": "Comma-separated tools/methodologies from skillsPool only"
+  "skills": "Comma-separated tools/methodologies from skillsPool only"${targetKeywords ? `,
+  "keywordsIncorporated": [
+    { "term": "keyword", "location": "summary|competencies|experience|skills|headline" }
+  ],
+  "keywordsSkipped": [
+    { "term": "keyword", "reason": "Not in candidate skillsPool" }
+  ]` : ''}
 }
 
 The "experience" array must have one item per included role, same order as input. If a role is omitted for space, include it in "omittedExperiences".`;

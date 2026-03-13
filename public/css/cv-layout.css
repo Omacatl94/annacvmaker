@@ -9,6 +9,7 @@
   min-height: 297mm;
   margin: 30px auto;
   background: #fff;
+  color: #2d3748;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.12);
 }
 
@@ -235,6 +236,38 @@
 
 .edit-mode-banner.visible {
   display: block;
+}
+
+/* ===== MOBILE PREVIEW ===== */
+@media (max-width: 600px) {
+  #cv-container {
+    width: auto;
+    min-height: auto;
+    margin: 16px 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  }
+  .cv-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 6mm 8mm 5mm;
+  }
+  .cv-photo {
+    margin: 0 auto 8px;
+    width: 60px;
+    height: 60px;
+  }
+  .cv-contacts {
+    justify-content: center;
+  }
+  .cv-name { font-size: 16pt; }
+  .cv-headline { font-size: 10pt; }
+  .cv-body { padding: 4mm 8mm; }
+  .cv-section-title { font-size: 10pt; }
+  .cv-exp-header { flex-direction: column; }
+  .cv-exp-role { font-size: 9.5pt; }
+  .cv-exp-bullets { font-size: 9pt; padding-left: 4mm; }
+  .cv-competencies { gap: 4px; }
+  .cv-badge { font-size: 8pt; padding: 2px 6px; }
 }
 
 /* ===== PRINT ===== */

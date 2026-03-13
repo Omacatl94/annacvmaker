@@ -1,9 +1,9 @@
 // server/services/invites.js
 import crypto from 'node:crypto';
 
-const BATCH_1_SIZE = 3;
-const BATCH_2_SIZE = 3;
-const WELCOME_CREDITS = 2;
+export const BATCH_1_SIZE = 3;
+export const BATCH_2_SIZE = 3;
+export const WELCOME_CREDITS = 2;
 const ACTIVATION_REWARD = 1;
 const COMPLETION_BONUS = 2;
 

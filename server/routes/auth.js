@@ -24,7 +24,12 @@ function setAuthCookie(reply, user, guest = false) {
 }
 
 function clearAuthCookie(reply) {
-  reply.clearCookie(COOKIE_NAME, { path: '/' });
+  reply.clearCookie(COOKIE_NAME, {
+    path: '/',
+    httpOnly: true,
+    secure: config.cookieSecure,
+    sameSite: 'lax',
+  });
 }
 
 export default async function authRoutes(app) {
@@ -188,6 +193,14 @@ export default async function authRoutes(app) {
     const user = result.rows[0];
     if (!user) return reply.send({ user: null });
     const isGuest = !!req.user.guest || user.email.endsWith('@anonymous');
+
+    // Re-issue JWT if status or role changed in DB (e.g. admin activated user)
+    const dbStatus = user.status || 'active';
+    const dbRole = user.role || 'user';
+    if (dbStatus !== req.user.status || dbRole !== req.user.role) {
+      setAuthCookie(reply, { ...user, status: dbStatus, role: dbRole }, isGuest);
+    }
+
     reply.send({
       user: {
         id: user.id, email: isGuest ? null : user.email, name: user.name,

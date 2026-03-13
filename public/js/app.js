@@ -2,7 +2,7 @@ import { api } from './api.js';
 import { t } from './strings.js';
 import { renderLogin } from './auth.js';
 import { renderLanding } from './landing.js';
-import { renderDashboard } from './cv-form.js';
+import { renderProfilePage, renderGeneraPage } from './cv-form.js';
 import { renderAccount } from './account.js';
 import { renderCandidature } from './candidature.js';
 import { renderPrivacyPolicy, renderTermsOfService } from './legal.js';
@@ -13,7 +13,7 @@ import { renderAdmin } from './admin.js';
 
 const root = document.getElementById('app');
 let currentUser = null;
-let activeTab = 'genera';
+let activeTab = 'profilo';
 
 export function getUser() { return currentUser; }
 export function setUser(u) { currentUser = u; }
@@ -107,6 +107,15 @@ export async function navigate(tab) {
   root.appendChild(content);
 
   switch (activeTab) {
+    case 'profilo':
+      renderProfilePage(content);
+      break;
+    case 'genera':
+      renderGeneraPage(content);
+      if (shouldShowATSEducation()) {
+        showATSEducation();
+      }
+      break;
     case 'candidature':
       renderCandidature(content);
       break;
@@ -115,13 +124,10 @@ export async function navigate(tab) {
       break;
     case 'admin':
       if (currentUser.role === 'admin') renderAdmin(content);
-      else renderDashboard(content);
+      else renderProfilePage(content);
       break;
     default:
-      renderDashboard(content);
-      if (shouldShowATSEducation()) {
-        showATSEducation();
-      }
+      renderProfilePage(content);
       break;
   }
 }
@@ -134,7 +140,7 @@ function buildHeader() {
   const logo = document.createElement('h1');
   logo.className = 'app-logo';
   logo.textContent = 'JobHacker';
-  logo.addEventListener('click', () => navigate('genera'));
+  logo.addEventListener('click', () => navigate('profilo'));
   header.appendChild(logo);
 
   // Tabs
@@ -142,6 +148,7 @@ function buildHeader() {
   tabs.className = 'app-tabs';
 
   const tabDefs = [
+    { id: 'profilo', label: 'Il mio CV', guestOk: true },
     { id: 'genera', label: 'Genera CV', guestOk: true },
     { id: 'candidature', label: 'Candidature', guestOk: false },
     { id: 'account', label: 'Account', guestOk: false },
@@ -211,7 +218,7 @@ function buildHeader() {
   logoutBtn.textContent = 'Esci';
   logoutBtn.addEventListener('click', async () => {
     await api.logout();
-    activeTab = 'genera';
+    activeTab = 'profilo';
     navigate();
   });
   userArea.appendChild(logoutBtn);
@@ -367,16 +374,15 @@ function renderWaitlistScreen(container) {
 
   card.appendChild(form);
 
-  // Logout option
+  // Logout option — inside the form so it stacks vertically
   const logoutBtn = document.createElement('button');
   logoutBtn.className = 'btn-secondary';
   logoutBtn.textContent = 'Esci';
-  logoutBtn.style.marginTop = '16px';
   logoutBtn.addEventListener('click', async () => {
     await api.logout();
     navigate();
   });
-  card.appendChild(logoutBtn);
+  form.appendChild(logoutBtn);
 
   page.appendChild(card);
   container.appendChild(page);

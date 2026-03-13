@@ -3,6 +3,87 @@
  * Adapted from legacy/index.html scoreWithHaiku() and optimizeForATS().
  */
 
+/**
+ * Builds a Haiku-friendly prompt to extract 15-25 keywords from a job description.
+ * Used BEFORE CV generation so Opus can incorporate them naturally.
+ */
+export function buildKeywordExtractionPrompt(jobDescription, language) {
+  const isIt = language === 'it';
+
+  return `You are a job description analyst. Extract the most important keywords and requirements from this job description.
+
+OUTPUT LANGUAGE: ${isIt ? 'Italian' : 'English'}.
+
+=== JOB DESCRIPTION ===
+${jobDescription}
+
+=== TASK ===
+
+Extract 15-25 keywords/phrases that an ATS system would look for. For each keyword:
+- Assign a priority: "high" (core requirements, must-have skills), "medium" (preferred qualifications), "low" (nice-to-have, soft skills)
+- Assign a category: "technical" (languages, tools, platforms), "skill" (methodologies, processes), "methodology" (frameworks like Agile, Scrum), "soft_skill" (communication, teamwork, etc.)
+
+Also identify the role title and industry domain.
+
+=== OUTPUT FORMAT ===
+
+Respond with ONLY valid JSON:
+{
+  "keywords": [
+    { "term": "Node.js", "priority": "high", "category": "technical" },
+    { "term": "Agile", "priority": "medium", "category": "methodology" },
+    { "term": "problem solving", "priority": "low", "category": "soft_skill" }
+  ],
+  "roleTitle": "Backend Developer",
+  "domain": "e-commerce"
+}
+
+Rules:
+- Extract ONLY what is explicitly in the job description. Never invent requirements.
+- Keep multi-word terms as phrases (e.g., "project management", not "project" + "management").
+- Include both technical and soft skill keywords.
+- Order by priority (high first, then medium, then low).`;
+}
+
+/**
+ * Lightweight fit score prompt — Haiku-friendly.
+ * Quick pre-generation check: does this profile match this JD?
+ */
+export function buildFitScorePrompt(profile, jobDescription, language) {
+  const isIt = language === 'it';
+
+  return `You are a job fit evaluator. Quickly assess how well a candidate profile matches a job description.
+
+OUTPUT LANGUAGE: ${isIt ? 'Italian' : 'English'}.
+
+=== CANDIDATE PROFILE ===
+Skills: ${JSON.stringify(profile.skills || [])}
+Experiences: ${(profile.experiences || []).map(e => `${e.role} at ${e.company} (${e.period})`).join('; ')}
+Education: ${(profile.education || []).map(e => `${e.degree} - ${e.school}`).join('; ')}
+
+=== JOB DESCRIPTION ===
+${jobDescription}
+
+=== TASK ===
+
+Score the fit from 0 to 100 and provide a one-sentence explanation.
+Also list the top 3 strengths and top 3 gaps.
+
+Respond with ONLY valid JSON:
+{
+  "score": 72,
+  "summary": "One sentence explaining the fit level",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "gaps": ["gap 1", "gap 2", "gap 3"]
+}
+
+Scoring guide:
+- 80-100: Strong match, most requirements covered
+- 60-79: Decent match, some gaps to address
+- 40-59: Partial match, significant gaps
+- 0-39: Poor match, major restructuring needed`;
+}
+
 export function buildATSPrompt(cvText, jobDescription, language, lockedKeywords) {
   const isIt = language === 'it';
 

@@ -1,9 +1,12 @@
 import { api } from './api.js';
+import { track } from './analytics.js';
+import { showATSEducation, shouldShowATSEducation } from './ats-education.js';
 import {
   getGeneratedData,
   setGeneratedData,
   getSelectedLang,
   getSelectedStyle,
+  getExtractedKeywords,
   renderCVPreview,
 } from './cv-generator.js';
 
@@ -93,7 +96,7 @@ function computeATSScore(jdText, cvText) {
     keywords,
     classic: buildScores(kwScore),
     smart: buildScores(Math.min(kwScore + 8, 100)),
-    tip: 'Analisi locale di fallback: aggiungi le keyword mancanti per migliorare il punteggio.',
+    tip: 'Le keyword in rosso mancano dal tuo CV. Aggiungile dove ha senso per migliorare il match.',
   };
 }
 
@@ -102,9 +105,9 @@ function createGauge(score, label, id) {
   const CIRCUMFERENCE = 2 * Math.PI * 19; // r=19 → ~119.38
   const offset = CIRCUMFERENCE - (score / 100) * CIRCUMFERENCE;
 
-  let strokeColor = '#38a169'; // green
-  if (score < 60) strokeColor = '#e53e3e';
-  else if (score < 80) strokeColor = '#d69e2e';
+  let strokeColor = '#00E676'; // green hacker
+  if (score < 60) strokeColor = '#EF5350';
+  else if (score < 80) strokeColor = '#FFB300';
 
   const wrapper = document.createElement('div');
   wrapper.className = 'ats-gauge';
@@ -119,7 +122,7 @@ function createGauge(score, label, id) {
   bgCircle.setAttribute('cy', '22');
   bgCircle.setAttribute('r', '19');
   bgCircle.setAttribute('fill', 'none');
-  bgCircle.setAttribute('stroke', '#eee');
+  bgCircle.setAttribute('stroke', '#2A2A2A');
   bgCircle.setAttribute('stroke-width', '4');
   svg.appendChild(bgCircle);
 
@@ -145,7 +148,7 @@ function createGauge(score, label, id) {
   text.setAttribute('text-anchor', 'middle');
   text.setAttribute('font-size', '11');
   text.setAttribute('font-weight', '700');
-  text.setAttribute('fill', '#2d3748');
+  text.setAttribute('fill', '#F5F5F5');
   text.textContent = String(score);
   svg.appendChild(text);
 
@@ -194,9 +197,16 @@ function buildKeywordTags(keywords) {
   const tagsWrap = document.createElement('div');
   tagsWrap.className = 'ats-keywords-list';
 
+  // Check if we have targeted keywords to mark them
+  const targetedKws = getExtractedKeywords();
+  const targetedTerms = new Set(
+    (targetedKws?.keywords || []).map(k => k.term.toLowerCase())
+  );
+
   keywords.forEach((kw) => {
     const tag = document.createElement('label');
-    tag.className = 'ats-kw-tag ' + kw.match;
+    const isTargeted = targetedTerms.has(kw.term.toLowerCase());
+    tag.className = 'ats-kw-tag ' + kw.match + (isTargeted ? ' kw-targeted' : '');
 
     if (kw.match === 'semantic' || kw.match === 'missing') {
       const cb = document.createElement('input');
@@ -342,7 +352,7 @@ export function renderATSPanel(container, profile, jobDescription, onOptimized) 
   // Initial button
   const analyzeBtn = document.createElement('button');
   analyzeBtn.className = 'btn-primary';
-  analyzeBtn.textContent = 'Analisi ATS';
+  analyzeBtn.textContent = 'Verifica ATS';
   panel.appendChild(analyzeBtn);
 
   const resultsArea = document.createElement('div');
@@ -364,7 +374,7 @@ async function runAnalysis(resultsArea, profile, jobDescription, onOptimized) {
   spinner.className = 'upload-spinner';
   loading.appendChild(spinner);
   const loadingText = document.createElement('span');
-  loadingText.textContent = 'Analisi in corso...';
+  loadingText.textContent = 'Analizziamo il tuo CV contro l\'annuncio...';
   loading.appendChild(loadingText);
   resultsArea.appendChild(loading);
 
@@ -380,6 +390,7 @@ async function runAnalysis(resultsArea, profile, jobDescription, onOptimized) {
   }
 
   resultsArea.textContent = '';
+  track('ats_scored', { classic: result.classic.total, smart: result.smart.total });
   renderResults(resultsArea, result, profile, jobDescription, onOptimized);
 }
 
@@ -395,6 +406,11 @@ function renderResults(container, result, profile, jobDescription, onOptimized) 
   const avgScore = Math.round((result.classic.total + result.smart.total) / 2);
   container.appendChild(createGradeBadge(avgScore));
 
+  // Trigger ATS education if score is low and user hasn't seen it
+  if (avgScore < 60 && shouldShowATSEducation()) {
+    showATSEducation();
+  }
+
   // Breakdown table
   container.appendChild(buildBreakdownTable(result));
 
@@ -407,10 +423,19 @@ function renderResults(container, result, profile, jobDescription, onOptimized) 
     container.appendChild(buildTip(result.tip));
   }
 
+  // Targeted banner (if keywords were pre-targeted)
+  const targeted = getExtractedKeywords();
+  if (targeted) {
+    const banner = document.createElement('div');
+    banner.className = 'ats-targeted-banner';
+    banner.textContent = 'Questo CV è stato generato con keyword target. L\'analisi verifica il risultato.';
+    container.appendChild(banner);
+  }
+
   // Optimize button
   const optimizeBtn = document.createElement('button');
   optimizeBtn.className = 'btn-primary ats-optimize-btn';
-  optimizeBtn.textContent = 'Ottimizza ATS';
+  optimizeBtn.textContent = targeted ? 'Affina ulteriormente' : 'Migliora il match';
   container.appendChild(optimizeBtn);
 
   // Changelog area
@@ -424,7 +449,7 @@ function renderResults(container, result, profile, jobDescription, onOptimized) 
 
 async function runOptimize(btn, kwContainer, changelogArea, resultsArea, atsResult, profile, jobDescription, onOptimized) {
   btn.disabled = true;
-  btn.textContent = 'Ottimizzazione...';
+  btn.textContent = 'Miglioriamo il match...';
 
   // Gather checked keywords
   const checkboxes = kwContainer.querySelectorAll('input[type="checkbox"]');
@@ -473,16 +498,17 @@ async function runOptimize(btn, kwContainer, changelogArea, resultsArea, atsResu
     changelogArea.appendChild(buildChangelog(optimized.changes || []));
 
     // Re-score
-    btn.textContent = 'Ri-analisi...';
+    btn.textContent = 'Verifica risultato...';
     await reScore(resultsArea, profile, jobDescription, onOptimized);
 
+    track('ats_optimized');
     if (onOptimized) onOptimized(newData);
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = 'Ottimizza ATS';
+    btn.textContent = 'Migliora il match';
     const errMsg = document.createElement('div');
     errMsg.className = 'feedback-error';
-    errMsg.textContent = 'Errore ottimizzazione: ' + err.message;
+    errMsg.textContent = 'Qualcosa non ha funzionato. ' + err.message;
     changelogArea.textContent = '';
     changelogArea.appendChild(errMsg);
   }
