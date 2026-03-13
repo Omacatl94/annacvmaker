@@ -1,19 +1,24 @@
 import fastifyStatic from '@fastify/static';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// Serve from dist/ (Vite build) if available, otherwise fall back to public/ (dev)
 const distDir = join(__dirname, '../../dist');
 const publicDir = join(__dirname, '../../public');
-const staticRoot = existsSync(distDir) ? distDir : publicDir;
 
 export async function registerStatic(app) {
+  // Serve Vite build output
   await app.register(fastifyStatic, {
-    root: staticRoot,
+    root: distDir,
     prefix: '/',
+  });
+
+  // Serve static assets from public/ (images, robots.txt, etc.)
+  await app.register(fastifyStatic, {
+    root: publicDir,
+    prefix: '/',
+    decorateReply: false,
   });
 
   // Serve uploads
@@ -28,7 +33,7 @@ export async function registerStatic(app) {
     if (req.url.startsWith('/api/')) {
       reply.code(404).send({ error: 'Not found' });
     } else {
-      reply.type('text/html').send(readFileSync(join(staticRoot, 'index.html')));
+      reply.type('text/html').send(readFileSync(join(distDir, 'index.html')));
     }
   });
 }
