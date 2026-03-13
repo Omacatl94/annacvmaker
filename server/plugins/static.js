@@ -5,20 +5,12 @@ import { readFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, '../../dist');
-const publicDir = join(__dirname, '../../public');
 
 export async function registerStatic(app) {
-  // Serve Vite build output
+  // Serve Vite build output (includes static assets from client/public/)
   await app.register(fastifyStatic, {
     root: distDir,
     prefix: '/',
-  });
-
-  // Serve static assets from public/ (images, robots.txt, etc.)
-  await app.register(fastifyStatic, {
-    root: publicDir,
-    prefix: '/',
-    decorateReply: false,
   });
 
   // Serve uploads
