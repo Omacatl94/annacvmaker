@@ -194,13 +194,13 @@ function CandidatureCard({ item, onUpdate }) {
         cvHTML +
         '</body></html>';
 
-      const fname = `${(item.target_role || 'CV').replace(/\s+/g, '_')}_${(item.target_company || '').replace(/\s+/g, '_')}.pdf`;
-      const blob = await api.exportPDF(fullHTML, fname);
+      const basename = `${(item.target_role || 'CV').replace(/\s+/g, '_')}_${(item.target_company || '').replace(/\s+/g, '_')}`;
+      const blob = await api.exportPDF(fullHTML, basename);
       const pdfBlob = new Blob([blob], { type: 'application/pdf' });
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fname;
+      a.download = basename + '.pdf';
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {

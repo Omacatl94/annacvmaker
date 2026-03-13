@@ -33,14 +33,14 @@ function sanitizeText(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function buildFilename(profile, generated, ext) {
+function buildFilename(profile, generated) {
   const name = sanitizeFilename(profile.personal?.name || 'CV');
   const role = sanitizeFilename(generated.target_role || generated.targetRole || generated.roleTitle || '');
   const company = sanitizeFilename(generated.target_company || generated.targetCompany || generated.companyName || '');
   let filename = name + '_CV';
   if (role) filename += '_' + role;
   if (company) filename += '_' + company;
-  return filename + ext;
+  return filename;
 }
 
 async function buildFullHTML(profile, lang) {
@@ -110,7 +110,7 @@ export default function ExportButtons({ profile, style, lang, generated }) {
     const fullHTML = await buildFullHTML(profile, lang);
     if (!fullHTML) return;
 
-    const filename = buildFilename(profile, generated, '.html');
+    const filename = buildFilename(profile, generated) + '.html';
     const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8' });
     downloadBlob(blob, filename);
   }, [profile, lang, generated]);
@@ -126,12 +126,12 @@ export default function ExportButtons({ profile, style, lang, generated }) {
         return;
       }
 
-      const filename = buildFilename(profile, generated, '.pdf');
+      const basename = buildFilename(profile, generated);
       track('cv_exported_pdf');
 
-      const blob = await api.exportPDF(fullHTML, filename);
+      const blob = await api.exportPDF(fullHTML, basename);
       const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-      downloadBlob(pdfBlob, filename);
+      downloadBlob(pdfBlob, basename + '.pdf');
 
       setPdfState('idle');
     } catch {
