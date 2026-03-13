@@ -64,10 +64,10 @@ await app.register(helmet, {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       imgSrc: ["'self'", 'data:', 'blob:'],
       connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
@@ -103,7 +103,8 @@ app.removeContentTypeParser('application/json');
 app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
   req.rawBody = body;
   try {
-    done(null, JSON.parse(body.toString()));
+    const str = body.toString();
+    done(null, str.length === 0 ? {} : JSON.parse(str));
   } catch (err) {
     done(err);
   }
