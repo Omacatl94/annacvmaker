@@ -194,7 +194,8 @@ function CandidatureCard({ item, onUpdate }) {
         cvHTML +
         '</body></html>';
 
-      const basename = `${(item.target_role || 'CV').replace(/\s+/g, '_')}_${(item.target_company || '').replace(/\s+/g, '_')}`;
+      const sanitize = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_ -]/g, '').replace(/\s+/g, '_');
+      const basename = `${sanitize(item.target_role || 'CV')}_${sanitize(item.target_company || '')}`;
       const blob = await api.exportPDF(fullHTML, basename);
       const pdfBlob = new Blob([blob], { type: 'application/pdf' });
       const url = URL.createObjectURL(pdfBlob);

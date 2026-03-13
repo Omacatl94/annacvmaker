@@ -248,54 +248,18 @@ function InviteSection() {
 // Each invite code maps to a unique message, like an Anonymous leak
 
 const COMMUNIQUES = [
-  {
-    id: 'ATS',
-    text: 'INTERCETTAZIONE \u2014 Il 75% dei CV viene scartato da un algoritmo prima che un umano lo veda. Questo link d\u00E0 accesso a uno strumento che parla la lingua di quei filtri. Usalo.',
-  },
-  {
-    id: '7SEC',
-    text: 'INFORMATIVA RISERVATA \u2014 Un recruiter dedica in media 7.4 secondi a ogni CV. Sette. Questo strumento ottimizza ogni singolo secondo. Non sprecare l\'occasione.',
-  },
-  {
-    id: 'GHOST',
-    text: 'SEGNALAZIONE INTERNA \u2014 Il 60% delle candidature online finisce in un buco nero. Nessuna risposta, nessun feedback. Questo link \u00E8 l\'antidoto. Provalo prima che sparisca.',
-  },
-  {
-    id: 'KEYWORD',
-    text: 'DOCUMENTO DECLASSIFICATO \u2014 I sistemi ATS cercano parole chiave esatte. Se non ci sono, il tuo CV non esiste. Questo strumento le inserisce al posto giusto. Silenziosamente.',
-  },
-  {
-    id: 'FORMAT',
-    text: 'LEAK CONFERMATO \u2014 Colonne, grafici, icone? I parser ATS li ignorano o li distruggono. Il formato conta pi\u00F9 del contenuto. Qui si genera nel formato che i filtri vogliono vedere.',
-  },
-  {
-    id: 'TAILOR',
-    text: 'COMUNICATO URGENTE \u2014 Mandare lo stesso CV a 50 aziende \u00E8 come sparare nel buio. Ogni annuncio ha le sue regole. Questo strumento adatta il CV all\'annuncio. Ogni volta.',
-  },
-  {
-    id: 'INSIDER',
-    text: 'NOTA OPERATIVA \u2014 I recruiter cercano pattern: headline chiara, competenze in evidenza, bullet misurabili. Questo strumento conosce i pattern. Tu devi solo incollare l\'annuncio.',
-  },
-  {
-    id: 'TIME',
-    text: 'DISPACCIO #7 \u2014 Il tempo medio per preparare un buon CV su misura \u00E8 45 minuti. Con questo strumento, 45 secondi. Il risparmio \u00E8 reale. Il vantaggio competitivo anche.',
-  },
-  {
-    id: 'COVER',
-    text: 'INTELLIGENCE REPORT \u2014 La cover letter \u00E8 il cavallo di Troia della candidatura. Nessuno la legge, ma tutti la vogliono. Questo strumento la genera insieme al CV. Due piccioni, zero fatica.',
-  },
-  {
-    id: 'SCORE',
-    text: 'ALLERTA \u2014 Prima di candidarti, dovresti sapere se il tuo profilo \u00E8 compatibile con l\'annuncio. Questo strumento te lo dice in 3 secondi. Poi decide tu.',
-  },
-  {
-    id: 'MASS',
-    text: 'BOLLETTINO SEGRETO \u2014 Chi cerca lavoro invia in media 27 candidature prima di ottenere un colloquio. Con un CV ottimizzato per ogni annuncio, quel numero si dimezza. Provare per credere.',
-  },
-  {
-    id: 'REJECT',
-    text: 'DOSSIER RISERVATO \u2014 Il motivo pi\u00F9 comune di scarto? "Profilo non in linea." Non perch\u00E9 non lo sei, ma perch\u00E9 il CV non lo comunica. Questo strumento risolve il problema.',
-  },
+  'Sapevi che il 75% dei CV viene scartato da un algoritmo prima che un umano lo veda? Io uso questo tool: incollo l\'annuncio e mi genera un CV che passa quei filtri. Ti mando l\'invito, provalo.',
+  'Ho trovato un tool che ti fa il CV su misura per ogni annuncio in 30 secondi. Incolli la job description e lui adatta tutto. Lo sto usando per le mie candidature, ti giro l\'accesso.',
+  'Ti giro l\'invito a JobHacker. \u00C8 un generatore di CV che legge l\'annuncio e ottimizza il tuo profilo per passare i filtri automatici delle aziende. A me ha svoltato, provalo.',
+  'Sai quei CV che mandi e non ti risponde mai nessuno? Spesso il problema \u00E8 che un software li scarta prima che un recruiter li veda. Questo tool sistema la cosa. Ti mando l\'invito.',
+  'Un recruiter guarda il tuo CV per 7 secondi. Sette. Questo tool mette le cose giuste nei posti giusti per quei 7 secondi. Lo uso io, ti mando l\'accesso.',
+  'Ti passo l\'invito a un tool che uso per candidarmi. Incolli l\'annuncio, lui analizza cosa cercano e ti genera un CV mirato. Fa anche la cover letter. Gratis con l\'invito.',
+  'Ho scoperto questo tool per i CV. La cosa figa \u00E8 che prima di generare il CV ti dice quanto sei compatibile con l\'annuncio, cos\u00EC sai subito se vale la pena candidarti. Ti giro l\'accesso.',
+  'Se stai cercando lavoro (o pensi di farlo), ti mando l\'invito a JobHacker. Genera CV ottimizzati per ogni annuncio. Io ci ho fatto tutte le ultime candidature.',
+  'Ogni annuncio ha le sue keyword e il suo formato ideale. Questo tool le legge dall\'annuncio e le mette nel CV al posto giusto. Non \u00E8 magia, \u00E8 AI. Ti mando il link.',
+  'Ti giro un invito per JobHacker. In pratica: incolli un annuncio di lavoro, lui prende il tuo profilo e genera un CV su misura per quella posizione. Funziona bene, provalo.',
+  'Mandare lo stesso CV a 50 aziende non funziona. Questo tool ti fa un CV diverso per ogni annuncio, ottimizzato per i filtri. Lo uso da un po\', te lo consiglio. Ecco l\'invito.',
+  'Se ti interessa, ti passo l\'accesso a JobHacker. \u00C8 un tool AI che genera CV mirati: analizzi l\'annuncio, vedi la compatibilit\u00E0 col tuo profilo, e generi il CV in un click.',
 ];
 
 function hashCode(str) {
@@ -311,9 +275,9 @@ function getCommunique(code) {
 }
 
 function buildShareMessage(code) {
-  const communique = getCommunique(code);
+  const message = getCommunique(code);
   const link = `https://jobhacker.it/?invite=${code}`;
-  return `\uD83E\uDD9D ${communique.text}\n\n${link}\n\n\u2014 Il Procione, JobHacker Intelligence`;
+  return `${message}\n\n${link}\n\n\uD83E\uDD9D`;
 }
 
 function InviteContent({ data }) {
@@ -344,7 +308,7 @@ function InviteContent({ data }) {
       <div className="invite-list">
         {data.codes.map((code) => {
           const shareMessage = buildShareMessage(code.code);
-          const communique = getCommunique(code.code);
+          const communiqueText = getCommunique(code.code);
           const isExpanded = expandedCode === code.code;
 
           return (
@@ -362,7 +326,7 @@ function InviteContent({ data }) {
                   >
                     <span className="communique-raccoon">{'\uD83E\uDD9D'}</span>
                     <span className="communique-snippet">
-                      {isExpanded ? communique.text : communique.text.slice(0, 60) + '...'}
+                      {isExpanded ? communiqueText : communiqueText.slice(0, 60) + '...'}
                     </span>
                     <span className="communique-toggle">{isExpanded ? '\u25B2' : '\u25BC'}</span>
                   </div>

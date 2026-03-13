@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { api } from '../api';
 import { t } from '../strings';
 import { track } from '../analytics';
-import { useAuth } from '../hooks/useAuth';
 
 const BADGE_CSS = `
 .jh-badge{position:fixed;bottom:12px;right:12px;background:#6c63ff;color:#fff;font-family:system-ui,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;opacity:.7;pointer-events:none;z-index:9999}
@@ -24,7 +23,8 @@ async function hasPurchased() {
 
 function sanitizeFilename(str) {
   return str
-    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents
+    .replace(/[^a-zA-Z0-9_ -]/g, '') // only allowed chars
     .replace(/\s+/g, '_')
     .substring(0, 80);
 }
@@ -100,10 +100,8 @@ function downloadBlob(blob, filename) {
   }, 500);
 }
 
-export default function ExportButtons({ profile, style, lang, generated }) {
-  const { user } = useAuth();
-  const [pdfState, setPdfState] = useState('idle'); // idle | loading | error
-  const [saveState, setSaveState] = useState('idle'); // idle | loading | saved | error
+export default function ExportButtons({ profile, lang, generated }) {
+  const [pdfState, setPdfState] = useState('idle');
 
   const handleHTMLDownload = useCallback(async () => {
     if (!generated) return;
@@ -140,41 +138,10 @@ export default function ExportButtons({ profile, style, lang, generated }) {
     }
   }, [profile, lang, generated]);
 
-  const handleSaveDB = useCallback(async () => {
-    if (!generated || !profile.id) return;
-
-    setSaveState('loading');
-    try {
-      await api.saveGenerated({
-        profile_id: profile.id,
-        job_description: generated.job_description || generated.jobDescription || '',
-        target_role: generated.target_role || generated.targetRole || '',
-        target_company: generated.target_company || generated.targetCompany || '',
-        language: lang,
-        style,
-        generated_data: generated,
-        ats_keyword_score: generated.ats_keyword_score || null,
-        ats_format_score: generated.ats_format_score || null,
-        ats_overall_score: generated.ats_overall_score || null,
-      });
-      setSaveState('saved');
-      setTimeout(() => setSaveState('idle'), 2000);
-    } catch {
-      setSaveState('error');
-      setTimeout(() => setSaveState('idle'), 2000);
-    }
-  }, [profile, style, lang, generated]);
-
   const pdfLabel =
     pdfState === 'loading' ? t('export.pdfLoading') :
     pdfState === 'error' ? t('export.errorPdf') :
     t('export.pdf');
-
-  const saveLabel =
-    saveState === 'loading' ? t('export.saving') :
-    saveState === 'saved' ? t('export.saved') :
-    saveState === 'error' ? t('export.errorSave') :
-    t('export.saveDb');
 
   return (
     <div className="export-buttons">
@@ -189,16 +156,6 @@ export default function ExportButtons({ profile, style, lang, generated }) {
       <button className="btn-print" onClick={handleHTMLDownload}>
         {t('export.html')}
       </button>
-
-      {user && !user.guest && (
-        <button
-          className="btn-save-db"
-          disabled={saveState === 'loading'}
-          onClick={handleSaveDB}
-        >
-          {saveLabel}
-        </button>
-      )}
     </div>
   );
 }
