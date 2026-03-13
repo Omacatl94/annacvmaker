@@ -9,27 +9,37 @@ const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser';
 const LOCAL_ORIGIN = `http://localhost:${process.env.PORT || 3000}`;
 
 export async function generatePDF(html) {
+  // Extract CSS from <style> tags BEFORE sanitization (DOMPurify strips them)
+  const styleBlocks = [];
+  html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css) => {
+    styleBlocks.push(css);
+  });
+
+  // Sanitize HTML body content only
   const sanitized = purify.sanitize(html, {
     ALLOWED_TAGS: [
-      'html', 'head', 'body', 'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
       'strong', 'em', 'b', 'i', 'u', 'br', 'hr', 'a', 'img',
       'section', 'article', 'header', 'footer', 'nav', 'main',
-      'style', 'link', 'title',
     ],
     ALLOWED_ATTR: [
       'class', 'id', 'style', 'href', 'src', 'alt', 'width', 'height',
-      'colspan', 'rowspan', 'rel', 'type', 'content', 'name', 'charset',
+      'colspan', 'rowspan',
     ],
     ALLOW_DATA_ATTR: false,
   });
 
-  // Strip external resource links (Google Fonts etc.) to avoid network waits
-  let cleanHtml = sanitized.replace(/<link[^>]*href="https?:\/\/[^"]*"[^>]*>/gi, '');
+  // Reassemble full HTML with CSS preserved
+  const cssBlock = styleBlocks.length > 0 ? `<style>${styleBlocks.join('\n')}</style>` : '';
 
-  // Inject <base> so Chromium resolves relative URLs (e.g. /uploads/photos/...)
-  // against the local server — no base64 workarounds needed
-  cleanHtml = cleanHtml.replace('<head>', `<head><base href="${LOCAL_ORIGIN}/">`);
+  let cleanHtml = `<!DOCTYPE html>
+<html><head>
+<base href="${LOCAL_ORIGIN}/">
+${cssBlock}
+</head><body>
+${sanitized}
+</body></html>`;
 
   const browser = await chromium.launch({
     executablePath: CHROMIUM_PATH,
