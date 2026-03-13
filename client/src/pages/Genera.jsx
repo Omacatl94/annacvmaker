@@ -102,7 +102,11 @@ export default function Genera() {
 
   // Auto-save generated CV for registered users
   const autoSaveGenerated = useCallback(async (prof, data, jd) => {
-    if (!user || user.guest || !prof.id) return;
+    if (!user || user.guest) return;
+    if (!prof.id) {
+      console.warn('[autoSave] Profilo senza ID, salvataggio saltato');
+      return;
+    }
     try {
       await api.saveGenerated({
         profile_id: prof.id,
@@ -115,7 +119,9 @@ export default function Genera() {
         ats_classic: data.ats_classic || null,
         ats_smart: data.ats_smart || null,
       });
-    } catch { /* silent */ }
+    } catch (err) {
+      console.error('[autoSave] Errore salvataggio candidatura:', err.message);
+    }
   }, [user, lang, style]);
 
   const handleGenerated = useCallback((result, jd, oneTapLang) => {
