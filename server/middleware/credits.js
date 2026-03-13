@@ -14,6 +14,7 @@ export function creditGuard(action) {
     if (!ok) {
       const msg = config.openBeta ? 'Limite giornaliero raggiunto' : 'Crediti insufficienti';
       reply.code(402).send({ error: msg, action });
+      return;
     }
   };
 }

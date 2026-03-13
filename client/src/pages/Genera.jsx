@@ -81,6 +81,7 @@ export default function Genera() {
   const [lang, setLang] = useState('it');
   const [generated, setGenerated] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
+  const [extractedKeywords, setExtractedKeywords] = useState(null);
 
   // Load profile on mount
   useEffect(() => {
@@ -124,10 +125,11 @@ export default function Genera() {
     }
   }, [user, lang, style]);
 
-  const handleGenerated = useCallback((result, jd, oneTapLang) => {
+  const handleGenerated = useCallback((result, jd, oneTapLang, keywords) => {
     setGenerated(result);
     setJobDescription(jd);
     if (oneTapLang) setLang(oneTapLang);
+    if (keywords) setExtractedKeywords({ keywords });
     autoSaveGenerated(profile, result, jd);
   }, [profile, autoSaveGenerated]);
 
@@ -142,6 +144,7 @@ export default function Genera() {
   const handleNewGeneration = useCallback(() => {
     setGenerated(null);
     setJobDescription('');
+    setExtractedKeywords(null);
   }, []);
 
   if (!loaded) {
@@ -204,10 +207,8 @@ export default function Genera() {
         <ATSPanel
           profile={profile}
           jobDescription={jobDescription}
-          generated={generated}
-          style={style}
-          lang={lang}
           onOptimized={handleOptimized}
+          extractedKeywords={extractedKeywords}
         />
 
         {/* Cover Letter */}

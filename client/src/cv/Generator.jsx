@@ -169,7 +169,7 @@ export default function Generator({
       await sleep(500);
 
       setProgress({ visible: false, percent: 0, step: '' });
-      if (onGenerated) onGenerated(result, trimmed);
+      if (onGenerated) onGenerated(result, trimmed, null, targetKeywords);
     } catch (err) {
       setProgress({ visible: false, percent: 0, step: '' });
       if (err.message === 'Crediti insufficienti' || err.message === 'Limite giornaliero raggiunto') {
