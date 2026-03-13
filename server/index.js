@@ -63,10 +63,10 @@ await app.register(helmet, {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://plausible.io'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       imgSrc: ["'self'", 'data:', 'blob:'],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", 'https://plausible.io'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],

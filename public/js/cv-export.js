@@ -1,10 +1,30 @@
 import { api } from './api.js';
+import { track } from './analytics.js';
 import {
   getGeneratedData,
   getSelectedLang,
   getSelectedStyle,
 } from './cv-generator.js';
 import { isEditing, saveIfEditing } from './cv-editor.js';
+import { getUser } from './app.js';
+
+let _hasPurchased = null;
+
+async function hasPurchased() {
+  if (_hasPurchased !== null) return _hasPurchased;
+  try {
+    const balance = await api.getBalance();
+    _hasPurchased = !!balance.hasPurchased;
+  } catch {
+    _hasPurchased = false;
+  }
+  return _hasPurchased;
+}
+
+const BADGE_CSS = `
+.jh-badge{position:fixed;bottom:12px;right:12px;background:#6c63ff;color:#fff;font-family:system-ui,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;opacity:.7;pointer-events:none;z-index:9999}
+`;
+const BADGE_HTML = '<div class="jh-badge">Creato con JobHacker</div>';
 
 /**
  * Renders export buttons (Download HTML, Print, Save to DB) below the CV.
@@ -15,26 +35,29 @@ export function renderExportButtons(container, profile) {
   const wrapper = document.createElement('div');
   wrapper.className = 'export-buttons';
 
+  // --- Download PDF (server-side via Playwright) ---
+  const pdfBtn = document.createElement('button');
+  pdfBtn.className = 'btn-download';
+  pdfBtn.textContent = 'Scarica PDF';
+  pdfBtn.addEventListener('click', () => handlePDFExport(pdfBtn, profile));
+  wrapper.appendChild(pdfBtn);
+
   // --- Download HTML ---
   const downloadBtn = document.createElement('button');
-  downloadBtn.className = 'btn-download';
+  downloadBtn.className = 'btn-print';
   downloadBtn.textContent = 'Scarica HTML';
   downloadBtn.addEventListener('click', () => handleDownload(profile));
   wrapper.appendChild(downloadBtn);
 
-  // --- Print ---
-  const printBtn = document.createElement('button');
-  printBtn.className = 'btn-print';
-  printBtn.textContent = 'Stampa';
-  printBtn.addEventListener('click', () => handlePrint());
-  wrapper.appendChild(printBtn);
-
-  // --- Save to DB ---
-  const saveBtn = document.createElement('button');
-  saveBtn.className = 'btn-save-db';
-  saveBtn.textContent = 'Salva nel database';
-  saveBtn.addEventListener('click', () => handleSaveDB(saveBtn, profile));
-  wrapper.appendChild(saveBtn);
+  // --- Save to DB (only for registered users) ---
+  const user = getUser();
+  if (user && !user.guest) {
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn-save-db';
+    saveBtn.textContent = 'Salva';
+    saveBtn.addEventListener('click', () => handleSaveDB(saveBtn, profile));
+    wrapper.appendChild(saveBtn);
+  }
 
   container.appendChild(wrapper);
 }
@@ -70,11 +93,16 @@ async function handleDownload(profile) {
 
   const cvHTML = cvContainer.outerHTML;
 
-  const pageCSS = '@page { size: A4 portrait; margin: 0; }';
+  const pageCSS = '@page { margin: 0; }';
   const colorAdjust = `
     body { margin: 0; padding: 0; background: #fff; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #cv-container { min-height: auto; box-shadow: none; margin: 0; }
   `;
+
+  const showBadge = !(await hasPurchased());
+  const badgeStyle = showBadge ? BADGE_CSS : '';
+  const badgeTag = showBadge ? BADGE_HTML : '';
 
   const fullHTML = `<!DOCTYPE html>
 <html lang="${getSelectedLang() || 'it'}">
@@ -88,10 +116,12 @@ ${pageCSS}
 ${colorAdjust}
 ${layoutCSS}
 ${themesCSS}
+${badgeStyle}
   </style>
 </head>
 <body>
 ${cvHTML}
+${badgeTag}
 </body>
 </html>`;
 
@@ -117,13 +147,90 @@ ${cvHTML}
 }
 
 // ---------------------------------------------------------------------------
-// Print
+// PDF Export (server-side Playwright)
 // ---------------------------------------------------------------------------
-function handlePrint() {
+async function handlePDFExport(btn, profile) {
   if (isEditing()) {
     saveIfEditing(null);
   }
-  window.print();
+
+  const cvContainer = document.getElementById('cv-container');
+  if (!cvContainer) return;
+
+  const generatedData = getGeneratedData();
+  if (!generatedData) return;
+
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Preparazione PDF...';
+
+  try {
+    // Fetch CSS to inline
+    let layoutCSS = '';
+    let themesCSS = '';
+    try {
+      const [layoutRes, themesRes] = await Promise.all([
+        fetch('/css/cv-layout.css'),
+        fetch('/css/cv-themes.css'),
+      ]);
+      layoutCSS = await layoutRes.text();
+      themesCSS = await themesRes.text();
+    } catch {}
+
+    const cvHTML = cvContainer.outerHTML;
+    const showBadge = !(await hasPurchased());
+    const badgeStyle = showBadge ? BADGE_CSS : '';
+    const badgeTag = showBadge ? BADGE_HTML : '';
+
+    const fullHTML = `<!DOCTYPE html>
+<html lang="${getSelectedLang() || 'it'}">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @page { margin: 0; }
+    body { margin: 0; padding: 0; background: #fff; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #cv-container { min-height: auto; box-shadow: none; margin: 0; }
+    ${layoutCSS}
+    ${themesCSS}
+    ${badgeStyle}
+  </style>
+</head>
+<body>${cvHTML}${badgeTag}</body>
+</html>`;
+
+    // Build filename
+    const name = sanitizeFilename(profile.personal?.name || 'CV');
+    const role = sanitizeFilename(generatedData.roleTitle || '');
+    const company = sanitizeFilename(generatedData.companyName || '');
+    let basename = name + '_CV';
+    if (role) basename += '_' + role;
+    if (company) basename += '_' + company;
+
+    track('cv_exported_pdf');
+    const blob = await api.exportPDF(fullHTML, basename);
+    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = basename + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 500);
+
+    btn.textContent = originalText;
+    btn.disabled = false;
+  } catch (err) {
+    btn.textContent = 'Errore PDF!';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }, 2000);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -175,7 +282,8 @@ async function handleSaveDB(btn, profile) {
 /** Sanitize a string for use in a filename: remove unsafe chars, replace spaces with underscores */
 function sanitizeFilename(str) {
   return str
-    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_ -]/g, '')
     .replace(/\s+/g, '_')
     .substring(0, 80);
 }
