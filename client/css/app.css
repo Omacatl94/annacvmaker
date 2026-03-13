@@ -1054,63 +1054,87 @@ body {
 }
 
 /* Fit Score Card */
+/* ── Check Fit Button ── */
+.btn-check-fit {
+  margin-bottom: var(--space-md);
+}
+
+/* ── Fit Score Card with Raccoon ── */
 .fit-score-card {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
-  padding: var(--space-md);
+  padding: var(--space-lg);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-md);
   animation: fadeIn 0.3s ease;
 }
-.fit-score-card.loading {
-  justify-content: center;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-style: italic;
+.fit-score-card.fit-poor { border-left: 4px solid var(--color-error); }
+.fit-score-card.fit-partial { border-left: 4px solid #FF8A65; }
+.fit-score-card.fit-decent { border-left: 4px solid var(--color-warning); }
+.fit-score-card.fit-strong { border-left: 4px solid var(--color-success); }
+.fit-score-card.fit-perfect { border-left: 4px solid #6c63ff; }
+
+.fit-score-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.fit-raccoon {
+  font-size: 36px;
+  line-height: 1;
 }
 .fit-score-circle {
-  flex-shrink: 0;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 3px solid var(--color-border);
+  align-items: baseline;
+  gap: 2px;
 }
-.fit-score-circle.fit-strong { border-color: var(--color-success); }
-.fit-score-circle.fit-decent { border-color: var(--color-warning); }
-.fit-score-circle.fit-partial { border-color: #FF8A65; }
-.fit-score-circle.fit-poor { border-color: var(--color-error); }
 .fit-score-num {
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1;
   color: var(--color-text-primary);
 }
 .fit-score-label {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--color-text-muted);
+  font-weight: 500;
 }
-.fit-score-info {
-  flex: 1;
-  min-width: 0;
-}
-.fit-score-summary {
-  font-size: 13px;
+.fit-raccoon-message {
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--color-text-primary);
-  margin: 0 0 var(--space-sm) 0;
-  line-height: 1.4;
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-sm);
+}
+.fit-score-details {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
 }
 .fit-score-list {
-  font-size: 12px;
+  flex: 1;
+  min-width: 200px;
+  font-size: 13px;
   color: var(--color-text-secondary);
   line-height: 1.5;
+}
+.fit-score-list strong {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.fit-score-list ul {
+  margin: 0;
+  padding-left: var(--space-md);
+}
+.fit-score-list ul li {
+  margin-bottom: 2px;
 }
 .fit-score-list.strengths strong { color: var(--color-success); }
 .fit-score-list.gaps strong { color: var(--color-warning); }
@@ -2727,6 +2751,12 @@ body {
   /* Keyword tags: smaller for mobile */
   .ats-kw-tag { font-size: 11px; padding: 4px 8px; }
   .kw-review-tag { font-size: 12px; }
+
+  /* Fit score card: stack on mobile */
+  .fit-score-details { flex-direction: column; gap: var(--space-sm); }
+  .fit-score-list { min-width: 0; }
+  .fit-raccoon { font-size: 28px; }
+  .fit-score-num { font-size: 26px; }
 
   /* Buttons: minimum 44px tap target */
   button,
