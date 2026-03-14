@@ -3716,20 +3716,29 @@ input, textarea, [contenteditable] {
   right: 0;
   width: 320px;
   max-height: 400px;
-  background: rgba(10, 10, 10, 0.85);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background: rgba(10, 10, 10, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--radius-lg, 16px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   z-index: 1000;
   overflow: hidden;
   animation: giftFadeIn 0.2s ease;
 }
 [data-theme="light"] .notification-dropdown {
-  background: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.95);
   border-color: rgba(0,0,0,0.1);
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+[data-theme="light"] .notification-text {
+  color: #1a1a1a;
+}
+[data-theme="light"] .notification-time {
+  color: rgba(0,0,0,0.5);
+}
+[data-theme="light"] .notification-empty {
+  color: rgba(0,0,0,0.5);
 }
 .notification-dropdown-header {
   padding: 12px 16px;
