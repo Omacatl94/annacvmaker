@@ -3693,6 +3693,12 @@ input, textarea, [contenteditable] {
 .notification-bell-btn:hover {
   color: var(--text-primary, #fff);
 }
+[data-theme="light"] .notification-bell-btn {
+  color: rgba(0,0,0,0.55);
+}
+[data-theme="light"] .notification-bell-btn:hover {
+  color: rgba(0,0,0,0.85);
+}
 .notification-badge {
   position: absolute;
   top: 2px;
@@ -3749,6 +3755,7 @@ input, textarea, [contenteditable] {
 }
 [data-theme="light"] .notification-dropdown-header {
   border-bottom-color: rgba(0,0,0,0.08);
+  color: #1a1a1a;
 }
 .notification-list {
   overflow-y: auto;
