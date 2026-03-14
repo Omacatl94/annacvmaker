@@ -80,9 +80,9 @@
   --color-bg-elevated: #FFFFFF;
   --color-bg-input: #FFFFFF;
 
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #666666;
-  --color-text-muted: #999999;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #525252;
+  --color-text-muted: #737373;
   --color-text-inverse: #FFFFFF;
 
   --color-accent: #00C853;
@@ -96,9 +96,9 @@
   --color-info-bg: rgba(66, 165, 245, 0.08);
   --color-success-bg: rgba(0, 200, 83, 0.08);
 
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-border-strong: rgba(0, 0, 0, 0.15);
-  --color-border-input: rgba(0, 0, 0, 0.15);
+  --color-border: rgba(0, 0, 0, 0.12);
+  --color-border-strong: rgba(0, 0, 0, 0.20);
+  --color-border-input: rgba(0, 0, 0, 0.18);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -115,14 +115,12 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+}
+/* Prevent text selection only on interactive UI elements */
+button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   -webkit-user-select: none;
   user-select: none;
-  -webkit-touch-callout: none;
-  touch-action: pan-x pan-y;
-}
-input, textarea, [contenteditable] {
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 /* === Login Page === */
@@ -189,14 +187,26 @@ input, textarea, [contenteditable] {
 .google-btn {
   background: #4285f4;
   color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 .google-btn:hover { background: #3367d6; }
 
 .linkedin-btn {
   background: #0077b5;
   color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 .linkedin-btn:hover { background: #005e93; }
+
+.oauth-icon {
+  flex-shrink: 0;
+}
 
 /* === Login Extras === */
 .login-divider {
@@ -460,7 +470,7 @@ input, textarea, [contenteditable] {
   background: linear-gradient(90deg, var(--color-accent), #69F0AE);
   border-radius: 3px;
   width: 0%;
-  transition: width 0.3s;
+  transition: width var(--transition-normal);
 }
 .progress-step {
   font-size: 12px;
@@ -857,7 +867,7 @@ input, textarea, [contenteditable] {
 
 .observation-card {
   border-left: 4px solid var(--color-border-strong);
-  transition: opacity 0.3s;
+  transition: opacity var(--transition-normal);
 }
 .obs-incongruence { border-left-color: var(--color-error); }
 .obs-improve { border-left-color: var(--color-warning); }
@@ -1688,6 +1698,9 @@ input, textarea, [contenteditable] {
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
+  border: none;
+  padding: 0;
+  font-family: inherit;
   overflow: visible;
   flex-shrink: 0;
   cursor: pointer;
@@ -1760,6 +1773,7 @@ input, textarea, [contenteditable] {
 .tab-btn:hover { color: var(--color-accent); }
 .tab-btn.active {
   color: var(--color-accent);
+  border-bottom: 2px solid var(--color-accent);
 }
 .tab-btn.tab-locked {
   opacity: 0.4;
@@ -1900,8 +1914,9 @@ input, textarea, [contenteditable] {
 }
 
 .btn-sm {
-  padding: 5px 12px;
+  padding: 8px 14px;
   font-size: 12px;
+  min-height: 36px;
 }
 
 .account-info-grid {
@@ -2334,7 +2349,7 @@ input, textarea, [contenteditable] {
   grid-template-columns: 1fr;
   gap: var(--space-lg);
 }
-@media (min-width: 700px) {
+@media (min-width: 768px) {
   .landing-grid-2 { grid-template-columns: 1fr 1fr; }
 }
 
@@ -2343,7 +2358,7 @@ input, textarea, [contenteditable] {
   grid-template-columns: 1fr;
   gap: var(--space-lg);
 }
-@media (min-width: 700px) {
+@media (min-width: 768px) {
   .landing-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
 }
 
@@ -2352,7 +2367,7 @@ input, textarea, [contenteditable] {
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-md);
 }
-@media (min-width: 700px) {
+@media (min-width: 768px) {
   .landing-grid-4 { grid-template-columns: repeat(4, 1fr); }
 }
 
@@ -3108,7 +3123,7 @@ input, textarea, [contenteditable] {
   font-weight: 700;
   color: #FFD54F;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
 }
 .credit-badge svg { color: #FFC107; filter: drop-shadow(0 0 3px rgba(255, 193, 7, 0.4)); }
@@ -3140,7 +3155,7 @@ input, textarea, [contenteditable] {
   z-index: 900;
   padding: 0;
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 .feedback-fab:hover { border-color: var(--color-accent); transform: scale(1.08); }
 .feedback-fab.active { border-color: var(--color-accent); }
@@ -3166,7 +3181,7 @@ input, textarea, [contenteditable] {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@media (max-width: 400px) {
+@media (max-width: 480px) {
   .feedback-panel { left: 12px; right: 12px; width: auto; }
 }
 
@@ -3209,7 +3224,7 @@ input, textarea, [contenteditable] {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 .feedback-type-btn.active.bug { background: rgba(244, 67, 54, 0.12); border-color: rgba(244, 67, 54, 0.4); color: #ef5350; }
 .feedback-type-btn.active.suggestion { background: rgba(33, 150, 243, 0.12); border-color: rgba(33, 150, 243, 0.4); color: #42a5f5; }
@@ -3570,7 +3585,7 @@ input, textarea, [contenteditable] {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s, opacity 0.15s;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 .gift-close:hover {
   transform: scale(1.05);
@@ -3688,7 +3703,7 @@ input, textarea, [contenteditable] {
   display: flex;
   align-items: center;
   position: relative;
-  transition: color 0.2s;
+  transition: color var(--transition-fast);
 }
 .notification-bell-btn:hover {
   color: var(--text-primary, #fff);
@@ -3766,7 +3781,7 @@ input, textarea, [contenteditable] {
   gap: 10px;
   padding: 10px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 .notification-item.unread {
   background: rgba(68, 138, 255, 0.08);
@@ -3825,23 +3840,35 @@ input, textarea, [contenteditable] {
 }
 .admin-nav {
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  gap: var(--space-xs);
   margin-bottom: var(--space-lg);
   border-bottom: 1px solid var(--color-border);
   padding-bottom: var(--space-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .admin-nav::-webkit-scrollbar {
   display: none;
+}
+.admin-tab-group {
+  display: flex;
+  gap: 2px;
+}
+.admin-tab-group + .admin-tab-group {
+  margin-left: var(--space-sm);
+  padding-left: var(--space-sm);
+  border-left: 1px solid var(--color-border);
 }
 .admin-tab-btn {
   background: none;
   border: none;
   color: var(--color-text-secondary);
-  font-size: 11px;
-  padding: 6px 8px;
+  font-size: 10px;
+  padding: 6px 6px;
   cursor: pointer;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  transition: color 0.2s, background 0.2s;
+  transition: color var(--transition-fast), background var(--transition-fast);
   white-space: nowrap;
   flex-shrink: 0;
   display: flex;
@@ -3857,6 +3884,7 @@ input, textarea, [contenteditable] {
 .admin-tab-btn.active {
   color: var(--color-accent);
   font-weight: 600;
+  border-bottom: 2px solid var(--color-accent);
 }
 .admin-content {
   min-height: 400px;
@@ -4010,7 +4038,7 @@ input, textarea, [contenteditable] {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-fast);
 }
 .user-card.expanded {
   border-color: var(--color-accent);
@@ -4067,7 +4095,7 @@ input, textarea, [contenteditable] {
   transform: translateY(-50%) rotate(90deg);
   font-size: 12px;
   color: var(--color-text-secondary);
-  transition: transform 0.2s;
+  transition: transform var(--transition-fast);
 }
 .user-card-chevron.open {
   transform: translateY(-50%) rotate(270deg);
@@ -4464,7 +4492,7 @@ input, textarea, [contenteditable] {
   background: var(--color-surface);
   color: var(--color-text);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-fast);
 }
 .btn-sm:hover {
   background: rgba(255,255,255,0.08);
@@ -4498,7 +4526,7 @@ input, textarea, [contenteditable] {
   height: 100%;
   background: var(--color-accent);
   border-radius: 4px;
-  transition: width 0.3s ease;
+  transition: width var(--transition-normal);
 }
 
 .invite-progress-text {
@@ -4583,7 +4611,7 @@ input, textarea, [contenteditable] {
   border: 1px dashed var(--color-border);
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
   margin: 4px 0;
 }
 .communique-preview:hover {

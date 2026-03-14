@@ -69,7 +69,7 @@ export default function Header() {
       </nav>
 
       <div className="app-user-area">
-        <button className="theme-toggle" title="Cambia tema" onClick={toggleTheme}>
+        <button className="theme-toggle" title="Cambia tema" aria-label="Cambia tema" onClick={toggleTheme}>
           <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
         </button>
 
@@ -77,6 +77,7 @@ export default function Header() {
           <button
             className={`credit-badge ${creditClass()}`}
             title="Crediti rimasti"
+            aria-label="Crediti rimasti"
             onClick={() => setShowPricing(true)}
           >
             <Icon name="coins" size={14} /> {renderCreditBadge()}
@@ -85,16 +86,17 @@ export default function Header() {
 
         {user && !user.guest && <NotificationBell />}
 
-        <div
+        <button
           className={'header-avatar' + (user?.role === 'admin' ? ' admin-dot' : '')}
           onClick={() => navigate(user?.guest ? '/' : '/account')}
           title={user?.guest ? 'Ospite' : (user?.name || user?.email)}
+          aria-label="Account utente"
         >
           {user?.photo_path
             ? <img src={user.photo_path} alt="Avatar" />
             : (user?.name || 'U')[0].toUpperCase()
           }
-        </div>
+        </button>
       </div>
 
       {showPricing && createPortal(
