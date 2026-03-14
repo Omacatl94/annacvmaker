@@ -21,19 +21,9 @@ export default async function paymentRoutes(app) {
   // GET /balance — auth required (works without Stripe)
   app.get('/balance', { preHandler: authGuard }, async (req, reply) => {
     const balance = await getBalance(app.db, req.user.id);
-    const [purchaseRes, giftRes] = await Promise.all([
-      app.db.query('SELECT 1 FROM purchases WHERE user_id = $1 LIMIT 1', [req.user.id]),
-      app.db.query('SELECT pending_gift FROM users WHERE id = $1', [req.user.id]),
-    ]);
+    const purchaseRes = await app.db.query('SELECT 1 FROM purchases WHERE user_id = $1 LIMIT 1', [req.user.id]);
 
-    const gift = giftRes.rows[0]?.pending_gift || null;
-
-    // Clear gift after reading (fire-and-forget)
-    if (gift) {
-      app.db.query('UPDATE users SET pending_gift = NULL WHERE id = $1', [req.user.id]).catch(() => {});
-    }
-
-    reply.send({ ...balance, hasPurchased: purchaseRes.rows.length > 0, gift });
+    reply.send({ ...balance, hasPurchased: purchaseRes.rows.length > 0, gift: null });
   });
 
   if (!config.stripe.secretKey) {

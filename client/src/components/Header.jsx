@@ -5,7 +5,6 @@ import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { api } from '../api';
 import Icon from './Icon';
-import GiftNotification from './GiftNotification';
 import PricingModal from './PricingModal';
 import NotificationBell from './NotificationBell';
 
@@ -15,14 +14,9 @@ export default function Header() {
   const navigate = useNavigate();
   const [balance, setBalance] = useState(null);
   const [showPricing, setShowPricing] = useState(false);
-  const [gift, setGift] = useState(null);
-
   useEffect(() => {
     if (user && !user.guest) {
-      api.getBalance().then(data => {
-        setBalance(data);
-        if (data.gift && data.gift.credits > 0) setGift(data.gift);
-      }).catch(() => {});
+      api.getBalance().then(data => setBalance(data)).catch(() => {});
     }
   }, [user]);
 
@@ -105,10 +99,6 @@ export default function Header() {
 
       {showPricing && createPortal(
         <PricingModal onClose={() => setShowPricing(false)} />,
-        document.body
-      )}
-      {gift && createPortal(
-        <GiftNotification gift={gift} onClose={() => setGift(null)} />,
         document.body
       )}
     </header>
