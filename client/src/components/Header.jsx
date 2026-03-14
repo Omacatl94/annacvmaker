@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
@@ -6,9 +7,10 @@ import { api } from '../api';
 import Icon from './Icon';
 import GiftNotification from './GiftNotification';
 import PricingModal from './PricingModal';
+import NotificationBell from './NotificationBell';
 
 export default function Header() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [balance, setBalance] = useState(null);
@@ -24,24 +26,16 @@ export default function Header() {
     }
   }, [user]);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
-
   const tabs = [
     { path: '/', label: 'Il mio CV', guestOk: true },
     { path: '/genera', label: 'Genera CV', guestOk: true },
     { path: '/candidature', label: 'Candidature', guestOk: false },
-    { path: '/account', label: 'Account', guestOk: false },
-    ...(user?.role === 'admin' ? [{ path: '/admin', label: 'Admin', guestOk: false }] : []),
   ];
 
   function renderCreditBadge() {
     if (!balance) return '...';
     if (balance.openBeta) {
-      const free = Math.max(0, balance.dailyLimit - balance.dailyUsed);
-      return `${free}/${balance.dailyLimit}${balance.credits > 0 ? ` +${balance.credits}` : ''}`;
+      return Math.max(0, balance.dailyLimit - balance.dailyUsed) + balance.credits;
     }
     return balance.credits;
   }
@@ -81,21 +75,9 @@ export default function Header() {
       </nav>
 
       <div className="app-user-area">
-        <div className="header-avatar">
-          {user?.photo_path
-            ? <img src={user.photo_path} alt="Avatar" />
-            : (user?.name || 'U')[0].toUpperCase()
-          }
-        </div>
-        <span className="header-username">
-          {user?.guest ? 'Ospite' : (user?.name || user?.email)}
-        </span>
-
         <button className="theme-toggle" title="Cambia tema" onClick={toggleTheme}>
           <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
         </button>
-
-        <button className="btn-logout" onClick={handleLogout}>Esci</button>
 
         {user && !user.guest && (
           <button
@@ -106,10 +88,29 @@ export default function Header() {
             <Icon name="coins" size={14} /> {renderCreditBadge()}
           </button>
         )}
+
+        {user && !user.guest && <NotificationBell />}
+
+        <div
+          className={'header-avatar' + (user?.role === 'admin' ? ' admin-dot' : '')}
+          onClick={() => navigate(user?.guest ? '/' : '/account')}
+          title={user?.guest ? 'Ospite' : (user?.name || user?.email)}
+        >
+          {user?.photo_path
+            ? <img src={user.photo_path} alt="Avatar" />
+            : (user?.name || 'U')[0].toUpperCase()
+          }
+        </div>
       </div>
 
-      {showPricing && <PricingModal onClose={() => setShowPricing(false)} />}
-      {gift && <GiftNotification gift={gift} onClose={() => setGift(null)} />}
+      {showPricing && createPortal(
+        <PricingModal onClose={() => setShowPricing(false)} />,
+        document.body
+      )}
+      {gift && createPortal(
+        <GiftNotification gift={gift} onClose={() => setGift(null)} />,
+        document.body
+      )}
     </header>
   );
 }

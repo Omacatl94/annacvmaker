@@ -308,6 +308,24 @@ const it = {
     reloadUnlocked: 'Nuovi inviti sbloccati!',
     bonusComplete: '+2 crediti bonus!',
     noInvites: 'I tuoi inviti verranno generati a breve.',
+    errorUsed: 'Questo invito è già stato utilizzato da un altro utente.',
+    errorInvalid: 'Il codice invito non è valido o non esiste.',
+    errorOwn: 'Non puoi utilizzare il tuo stesso codice invito.',
+    errorTitle: 'Invito non disponibile',
+  },
+
+  // ── Notifications ──
+  notifications: {
+    title: 'Notifiche',
+    empty: 'Nessuna notifica',
+    invite_claimed:    (d) => `${d.inviteeName} ha accettato il tuo invito`,
+    invite_activated:  (d) => `${d.inviteeName} ha generato il primo CV \u2014 +${d.credits} credito`,
+    batch_reload:      (d) => `Hai ${d.newCodes} nuovi inviti disponibili!`,
+    referral_complete: (d) => `Tutti i tuoi inviti sono attivi \u2014 +${d.credits} crediti bonus!`,
+    credits_received:  (d) => `Hai ricevuto ${d.credits} crediti${d.reason ? `: "${d.reason}"` : ''}`,
+    credits_purchased: (d) => `Acquisto completato: +${d.credits} crediti`,
+    feedback_rewarded: (d) => `Il tuo feedback \u00E8 stato premiato con ${d.credits} crediti`,
+    welcome_activated: (d) => `Benvenuto! Il tuo account \u00E8 attivo \u2014 hai ${d.credits} crediti`,
   },
 
   // ── Common ──

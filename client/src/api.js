@@ -8,8 +8,10 @@ async function request(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Request failed');
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    const err = new Error(body.error || 'Request failed');
+    err.status = res.status;
+    throw err;
   }
   return res.json();
 }
@@ -85,6 +87,11 @@ export const api = {
   claimReferral: () => Promise.resolve({}),
   getReferralStats: () => Promise.resolve({ code: null, referrals: 0, creditsEarned: 0, maxReferrals: 0 }),
 
+  // Notifications
+  getNotifications: () => request('/notifications'),
+  getNotificationCount: () => request('/notifications/count'),
+  markNotificationsRead: (body) => request('/notifications/read', { method: 'POST', body }),
+
   getPricing: () => request('/payments/pricing'),
   getBalance: () => request('/payments/balance'),
   createCheckout: (tier) => request('/payments/create-checkout', { method: 'POST', body: { tier } }),
@@ -101,7 +108,15 @@ export const api = {
   adminErrors: (params) => request(`/admin/errors?${new URLSearchParams(params)}`),
   adminWaitlist: (params) => request(`/admin/waitlist?${new URLSearchParams(params)}`),
   adminInviteWaitlist: (id) => request(`/admin/waitlist/${id}/invite`, { method: 'POST', body: {} }),
+  adminActivateWaitlist: (id) => request(`/admin/waitlist/${id}/activate`, { method: 'POST', body: {} }),
   adminInviteStats: () => request('/admin/stats/invites'),
   adminActivateUser: (id) => request(`/admin/users/${id}/activate`, { method: 'PUT', body: {} }),
   adminGenerateInvite: () => request('/admin/invite-generate', { method: 'POST', body: {} }),
+
+  // Feedback
+  submitFeedback: (data) => request('/feedback', { method: 'POST', body: data }),
+  myFeedback: () => request('/feedback/mine'),
+  adminFeedback: (params) => request(`/feedback/admin?${new URLSearchParams(params)}`),
+  adminRewardFeedback: (id, data) => request(`/feedback/admin/${id}/reward`, { method: 'POST', body: data }),
+  adminReviewFeedback: (id, data) => request(`/feedback/admin/${id}/review`, { method: 'POST', body: data }),
 };
