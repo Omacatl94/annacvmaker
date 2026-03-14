@@ -15,6 +15,8 @@ import uploadRoutes from './routes/upload.js';
 import aiRoutes from './routes/ai.js';
 import paymentRoutes from './routes/payments.js';
 import adminRoutes from './routes/admin.js';
+import feedbackRoutes from './routes/feedback.js';
+import notificationRoutes from './routes/notifications.js';
 const app = Fastify({ logger: true, trustProxy: true });
 
 // Sanitize request body — remove sensitive fields
@@ -113,7 +115,8 @@ app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, 
 // JWT auth: decode token on every request, set req.user
 app.decorateRequest('user', null);
 app.addHook('onRequest', async (req) => {
-  const token = req.cookies?.['__Host-jh_token'];
+  const cookieName = config.cookieSecure ? '__Host-jh_token' : 'jh_token';
+  const token = req.cookies?.[cookieName];
   if (!token) return;
   const payload = verify(token, config.jwtSecret);
   if (payload) req.user = payload;
@@ -157,7 +160,9 @@ await app.register(cvRoutes, { prefix: '/api/cv' });
 await app.register(aiRoutes, { prefix: '/api/ai' });
 await app.register(paymentRoutes, { prefix: '/api/payments' });
 await app.register(adminRoutes, { prefix: '/api/admin' });
+await app.register(feedbackRoutes, { prefix: '/api/feedback' });
 await app.register(uploadRoutes, { prefix: '/api/upload' });
+await app.register(notificationRoutes, { prefix: '/api/notifications' });
 
 // Static files (must be last — catches unmatched routes for SPA)
 await app.register(registerStatic);
