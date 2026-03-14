@@ -2,6 +2,7 @@ import { adminGuard } from '../middleware/auth-guard.js';
 import { openrouter } from '../services/openrouter.js';
 import { generateInviteCodes, WELCOME_CREDITS, BATCH_1_SIZE } from '../services/invites.js';
 import { sendWelcomeEmail } from '../services/email.js';
+import { notify } from '../services/notifications.js';
 
 export default async function adminRoutes(app) {
   app.addHook('preHandler', adminGuard);
@@ -157,7 +158,7 @@ export default async function adminRoutes(app) {
     const sortExpr = SORT_COLUMNS[sort] || 'u.created_at';
     const sortDir = order === 'asc' ? 'ASC' : 'DESC';
 
-    let where = `WHERE u.email NOT LIKE '%@anonymous'`;
+    let where = `WHERE u.email NOT LIKE '%@anonymous' AND u.status != 'waitlist'`;
     const params = [];
     if (search) {
       params.push(`%${search}%`);
@@ -212,10 +213,11 @@ export default async function adminRoutes(app) {
     const oldCredits = oldRes.rows[0]?.credits || 0;
     const diff = credits - oldCredits;
 
-    await app.db.query(
-      'UPDATE users SET credits = $1, pending_gift = $2 WHERE id = $3',
-      [credits, diff > 0 ? JSON.stringify({ credits: diff, reason: reason || null }) : null, id]
-    );
+    await app.db.query('UPDATE users SET credits = $1 WHERE id = $2', [credits, id]);
+
+    if (diff > 0) {
+      notify(app.db, id, 'credits_received', { credits: diff, reason: reason || null }).catch(() => {});
+    }
 
     // Log in credit_usage
     await app.db.query(
@@ -257,6 +259,9 @@ export default async function adminRoutes(app) {
       [req.user.id, req.ip, req.headers['user-agent']?.substring(0, 500) || null,
        JSON.stringify({ targetUser: id, credits: WELCOME_CREDITS })]
     );
+
+    // Notification
+    notify(app.db, id, 'welcome_activated', { credits: WELCOME_CREDITS }).catch(() => {});
 
     // Welcome email (fire-and-forget)
     sendWelcomeEmail(user.email, user.name).catch(err => {
@@ -348,6 +353,59 @@ export default async function adminRoutes(app) {
     );
 
     reply.send({ waitlist: rows, total: +countRes.rows[0].n });
+  });
+
+  // ── Activate waitlist entry: create user directly ──
+  app.post('/waitlist/:id/activate', async (req, reply) => {
+    const { id } = req.params;
+
+    const wl = await app.db.query('SELECT * FROM waitlist WHERE id = $1', [id]);
+    if (!wl.rows[0]) return reply.code(404).send({ error: 'Waitlist entry not found' });
+    const entry = wl.rows[0];
+
+    // Check if user already exists (e.g. they registered via another path)
+    const existing = await app.db.query('SELECT id FROM users WHERE LOWER(email) = $1', [entry.email.toLowerCase()]);
+    if (existing.rows[0]) {
+      // Just activate the existing user
+      await app.db.query('UPDATE users SET status = $1, credits = credits + $2 WHERE id = $3', ['active', WELCOME_CREDITS, existing.rows[0].id]);
+      await generateInviteCodes(app.db, existing.rows[0].id, 1);
+      await app.db.query('DELETE FROM waitlist WHERE id = $1', [id]);
+      notify(app.db, existing.rows[0].id, 'welcome_activated', { credits: WELCOME_CREDITS }).catch(() => {});
+      return reply.send({ ok: true, userId: existing.rows[0].id });
+    }
+
+    // Create new user from waitlist data
+    const referralCode = (await import('node:crypto')).default.randomBytes(3).toString('hex').toUpperCase();
+    const userRes = await app.db.query(
+      `INSERT INTO users (email, name, google_id, linkedin_id, referral_code, status, credits)
+       VALUES ($1, $2, $3, $4, $5, 'active', $6) RETURNING *`,
+      [entry.email, entry.name || null, entry.google_id || null, entry.linkedin_id || null, referralCode, WELCOME_CREDITS]
+    );
+    const user = userRes.rows[0];
+
+    // Generate invite codes (batch 1)
+    await generateInviteCodes(app.db, user.id, 1);
+
+    // Remove from waitlist
+    await app.db.query('DELETE FROM waitlist WHERE id = $1', [id]);
+
+    // Audit
+    await app.db.query(
+      `INSERT INTO audit_logs (user_id, action, ip, user_agent, metadata)
+       VALUES ($1, 'admin_activate_waitlist', $2, $3, $4)`,
+      [req.user.id, req.ip, req.headers['user-agent']?.substring(0, 500) || null,
+       JSON.stringify({ waitlistId: id, email: entry.email, newUserId: user.id })]
+    );
+
+    // Notification
+    notify(app.db, user.id, 'welcome_activated', { credits: WELCOME_CREDITS }).catch(() => {});
+
+    // Welcome email
+    sendWelcomeEmail(entry.email, entry.name).catch(err => {
+      req.log.error({ err, email: entry.email }, 'Failed to send welcome email');
+    });
+
+    reply.send({ ok: true, userId: user.id });
   });
 
   app.post('/waitlist/:id/invite', async (req, reply) => {

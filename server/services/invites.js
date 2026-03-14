@@ -1,5 +1,6 @@
 // server/services/invites.js
 import crypto from 'node:crypto';
+import { notify } from './notifications.js';
 
 export const BATCH_1_SIZE = 3;
 export const BATCH_2_SIZE = 3;
@@ -83,21 +84,45 @@ export async function claimInvite(db, userId, code) {
     throw err;
   }
 
-  // Claim: activate user, set invited_by, award credits
-  await db.query(
-    `UPDATE users SET status = 'active', invited_by = $1, credits = credits + $2 WHERE id = $3`,
-    [invite.owner_id, WELCOME_CREDITS, userId]
+  // Only allow claiming if user hasn't already been activated via another invite
+  const { rows: [claimer] } = await db.query('SELECT status, invited_by, name, email FROM users WHERE id = $1', [userId]);
+  if (claimer?.invited_by) {
+    const err = new Error('Hai già utilizzato un invito');
+    err.statusCode = 409;
+    throw err;
+  }
+
+  // Atomically claim the invite code (prevents race condition with concurrent requests)
+  const claimed = await db.query(
+    'UPDATE invite_codes SET claimed_by = $1, claimed_at = NOW() WHERE id = $2 AND claimed_by IS NULL RETURNING id',
+    [userId, invite.id]
   );
 
+  if (claimed.rowCount === 0) {
+    const err = new Error('Codice invito già utilizzato');
+    err.statusCode = 409;
+    throw err;
+  }
+
+  // Activate user and award credits — only if not already invited
   await db.query(
-    'UPDATE invite_codes SET claimed_by = $1, claimed_at = NOW() WHERE id = $2',
-    [userId, invite.id]
+    `UPDATE users SET status = 'active', invited_by = $1, credits = credits + $2
+     WHERE id = $3 AND invited_by IS NULL`,
+    [invite.owner_id, WELCOME_CREDITS, userId]
   );
 
   // Generate invite codes for the new user
   const userBatch = await db.query('SELECT invite_batch FROM users WHERE id = $1', [userId]);
   if (userBatch.rows[0]?.invite_batch === 0) {
     await generateInviteCodes(db, userId, 1);
+  }
+
+  // Notify the code owner that their invite was claimed
+  if (invite.owner_id) {
+    notify(db, invite.owner_id, 'invite_claimed', {
+      inviteeName: claimer?.name || claimer?.email || 'Un utente',
+      code,
+    }).catch(() => {});
   }
 
   return { ok: true, credits: WELCOME_CREDITS };
@@ -116,23 +141,28 @@ export async function handleFirstGeneration(db, userId, logger) {
 
     // Transaction: activate code + award credit + log
     const client = await db.pool ? db.pool.connect() : db.connect();
+    let activatedCount = 0;
     try {
       await client.query('BEGIN');
 
-      await client.query(
+      const activated = await client.query(
         'UPDATE invite_codes SET activated = true, activated_at = NOW() WHERE claimed_by = $1 AND NOT activated',
         [userId]
       );
+      activatedCount = activated.rowCount;
 
-      await client.query(
-        'UPDATE users SET credits = credits + $1 WHERE id = $2',
-        [ACTIVATION_REWARD, invitedBy]
-      );
+      // Only award credit if we actually activated a code (prevents double-reward)
+      if (activatedCount > 0) {
+        await client.query(
+          'UPDATE users SET credits = credits + $1 WHERE id = $2',
+          [ACTIVATION_REWARD, invitedBy]
+        );
 
-      await client.query(
-        `INSERT INTO credit_usage (user_id, action, credits_consumed) VALUES ($1, 'invite_reward', 0)`,
-        [invitedBy]
-      );
+        await client.query(
+          `INSERT INTO credit_usage (user_id, action, credits_consumed) VALUES ($1, 'invite_reward', 0)`,
+          [invitedBy]
+        );
+      }
 
       await client.query('COMMIT');
     } catch (err) {
@@ -140,6 +170,13 @@ export async function handleFirstGeneration(db, userId, logger) {
       throw err;
     } finally {
       client.release();
+    }
+
+    // Notifications AFTER commit, using pool connection (not transaction client)
+    if (activatedCount > 0) {
+      const { rows: [invitee] } = await db.query('SELECT name, email FROM users WHERE id = $1', [userId]);
+      const inviteeName = invitee?.name || invitee?.email || 'Un utente';
+      notify(db, invitedBy, 'invite_activated', { inviteeName, credits: ACTIVATION_REWARD }).catch(() => {});
     }
 
     // Check for batch reload
@@ -171,10 +208,7 @@ async function checkBatchReload(db, ownerId) {
 
     if (+stats.total > 0 && +stats.active === +stats.total) {
       await generateInviteCodes(db, ownerId, 2);
-      await db.query(
-        `UPDATE users SET pending_gift = $1 WHERE id = $2`,
-        [JSON.stringify({ type: 'invite_reload', codes: BATCH_2_SIZE }), ownerId]
-      );
+      notify(db, ownerId, 'batch_reload', { newCodes: BATCH_2_SIZE }).catch(() => {});
     }
   } else if (user.invite_batch === 2) {
     // Check full completion (all 6)
@@ -196,10 +230,7 @@ async function checkBatchReload(db, ownerId) {
           `INSERT INTO credit_usage (user_id, action, credits_consumed) VALUES ($1, 'invite_bonus_complete', 0)`,
           [ownerId]
         );
-        await db.query(
-          `UPDATE users SET pending_gift = $1 WHERE id = $2`,
-          [JSON.stringify({ type: 'referral_complete', credits: COMPLETION_BONUS }), ownerId]
-        );
+        notify(db, ownerId, 'referral_complete', { credits: COMPLETION_BONUS }).catch(() => {});
       }
     }
   }

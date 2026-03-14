@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { authGuard } from '../middleware/auth-guard.js';
 import { config } from '../config.js';
 import { PRICING_TIERS, addCredits, getBalance } from '../services/credits.js';
+import { notify } from '../services/notifications.js';
 
 export default async function paymentRoutes(app) {
   // GET /pricing — public, returns visible tiers
@@ -103,6 +104,8 @@ export default async function paymentRoutes(app) {
         try {
           const result = await addCredits(app.db, userId, tier, session.id, session.payment_intent);
           app.log.info({ userId, tier, credits: result.credits }, 'Credits added via Stripe');
+          const tierCredits = PRICING_TIERS[tier]?.credits || 0;
+          notify(app.db, userId, 'credits_purchased', { credits: tierCredits, tier }).catch(() => {});
         } catch (err) {
           app.log.error({ err, userId, tier }, 'Failed to add credits');
           app.db.query(
