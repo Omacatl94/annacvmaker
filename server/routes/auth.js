@@ -338,10 +338,11 @@ export default async function authRoutes(app) {
         'INSERT INTO waitlist (email) VALUES ($1) ON CONFLICT (email) DO NOTHING RETURNING id',
         [normalized]
       );
-      if (wlResult.rowCount > 0) {
+      const isNew = wlResult.rowCount > 0;
+      if (isNew) {
         notifyAdminNewWaitlist(normalized, null, 'login_check').catch(() => {});
       }
-      return reply.send({ exists: false, addedToWaitlist: true });
+      return reply.send({ exists: false, addedToWaitlist: true, alreadyInWaitlist: !isNew });
     }
     return reply.send({
       exists: true,

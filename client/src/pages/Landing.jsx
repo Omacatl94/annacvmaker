@@ -124,6 +124,12 @@ function LoginModal({ onClose }) {
             <p className="login-subtitle">{t('landing.loginWaitlistedText')}</p>
             <button className="btn-primary" onClick={onClose}>{t('landing.loginOkBtn')}</button>
           </>
+        ) : result.alreadyInWaitlist ? (
+          <>
+            <h2>{t('landing.loginAlreadyInWaitlist')}</h2>
+            <p className="login-subtitle">{t('landing.loginAlreadyInWaitlistText')}</p>
+            <button className="btn-primary" onClick={onClose}>{t('landing.loginOkBtn')}</button>
+          </>
         ) : (
           <>
             <h2>{t('landing.loginAddedToWaitlist')}</h2>
