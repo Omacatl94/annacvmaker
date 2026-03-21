@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { config } from '../config.js';
 import { sign } from '../services/jwt.js';
 import { google, linkedin } from '../services/oauth.js';
+import { notifyAdminNewWaitlist } from '../services/email.js';
 
 const COOKIE_NAME = config.cookieSecure ? '__Host-jh_token' : 'jh_token';
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -99,15 +100,24 @@ export default async function authRoutes(app) {
     }
 
     // New user → waitlist, admin activates manually
-    await app.db.query(
+    const normalized = email.toLowerCase();
+    const wlResult = await app.db.query(
       `INSERT INTO waitlist (email, name, google_id, linkedin_id)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (email) DO UPDATE SET
          name = COALESCE(EXCLUDED.name, waitlist.name),
          google_id = COALESCE(EXCLUDED.google_id, waitlist.google_id),
-         linkedin_id = COALESCE(EXCLUDED.linkedin_id, waitlist.linkedin_id)`,
-      [email.toLowerCase(), name || null, googleId || null, linkedinId || null]
+         linkedin_id = COALESCE(EXCLUDED.linkedin_id, waitlist.linkedin_id)
+       RETURNING (xmax = 0) AS is_new`,
+      [normalized, name || null, googleId || null, linkedinId || null]
     );
+
+    // Notify admin only for genuinely new waitlist entries (not upsert updates)
+    if (wlResult.rows[0]?.is_new) {
+      const source = googleId ? 'oauth_google' : linkedinId ? 'oauth_linkedin' : 'form';
+      notifyAdminNewWaitlist(normalized, name, source).catch(() => {});
+    }
+
     return { user: null, isNew: true, waitlisted: true };
   }
 
@@ -360,10 +370,14 @@ export default async function authRoutes(app) {
     }
 
     try {
-      await app.db.query(
-        'INSERT INTO waitlist (email) VALUES ($1) ON CONFLICT (email) DO NOTHING',
+      const wlResult = await app.db.query(
+        'INSERT INTO waitlist (email) VALUES ($1) ON CONFLICT (email) DO NOTHING RETURNING id',
         [normalized]
       );
+      // Notify admin only if actually inserted (not a duplicate)
+      if (wlResult.rowCount > 0) {
+        notifyAdminNewWaitlist(normalized, null, 'form').catch(() => {});
+      }
     } catch { /* ignore */ }
     reply.send({ ok: true });
   });
