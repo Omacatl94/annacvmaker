@@ -2851,7 +2851,7 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
 .landing-steps {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
+  gap: 0;
   max-width: 600px;
   margin: 0 auto;
 }
@@ -2860,24 +2860,70 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   display: flex;
   gap: var(--space-lg);
   align-items: flex-start;
+  position: relative;
+  padding-bottom: var(--space-xl);
+  opacity: 0.35;
+  transition: opacity 0.5s ease;
+}
+.landing-step.step-done {
+  opacity: 1;
 }
 
-.landing-step-num {
+/* Check circle */
+.landing-step-check {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-accent);
-  background: var(--color-accent-subtle);
-  border: 1px solid var(--color-accent-border);
   border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  color: transparent;
+  transition: all 0.4s ease;
+  z-index: 1;
+}
+.landing-step.step-done .landing-step-check {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #0a0a0a;
+}
+[data-theme="light"] .landing-step.step-done .landing-step-check {
+  color: #fff;
+}
+.landing-step.step-current .landing-step-check {
+  transform: scale(1.15);
+  box-shadow: 0 0 16px rgba(0, 230, 118, 0.4);
 }
 
+/* Checkmark path animation */
+.check-path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: drawCheck 0.35s ease forwards 0.15s;
+}
+@keyframes drawCheck {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Vertical connector line */
+.landing-step-line {
+  position: absolute;
+  left: 19px;
+  top: 42px;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border);
+  transition: background 0.5s ease;
+}
+.landing-step-line.line-done {
+  background: var(--color-accent);
+}
+
+.landing-step-content {
+  padding-top: 6px;
+}
 .landing-step-content h3 {
   font-family: var(--font-heading);
   font-size: 17px;
@@ -3187,7 +3233,8 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   .landing-section { padding: var(--space-xl) var(--space-md); }
   .landing-section-alt { padding-left: var(--space-md); padding-right: var(--space-md); }
   .landing-step { gap: var(--space-md); }
-  .landing-step-num { width: 40px; height: 40px; font-size: 16px; }
+  .landing-step-check { width: 34px; height: 34px; }
+  .landing-step-line { left: 16px; top: 36px; }
   .btn-lg { padding: 12px 32px; font-size: 15px; }
   .price-name { font-size: 11px; letter-spacing: 0.5px; }
   .price-amount { font-size: 26px; }

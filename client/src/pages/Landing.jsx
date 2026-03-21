@@ -288,24 +288,54 @@ function ComparisonSection() {
 
 function HowItWorks() {
   const stepData = [
-    { num: '1', title: t('landing.step1Title'), text: t('landing.step1Text') },
-    { num: '2', title: t('landing.step2Title'), text: t('landing.step2Text') },
-    { num: '3', title: t('landing.step3Title'), text: t('landing.step3Text') },
+    { title: t('landing.step1Title'), text: t('landing.step1Text') },
+    { title: t('landing.step2Title'), text: t('landing.step2Text') },
+    { title: t('landing.step3Title'), text: t('landing.step3Text') },
   ];
 
+  const sectionRef = useRef(null);
+  const [activeStep, setActiveStep] = useState(-1);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    let triggered = false;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !triggered) {
+        triggered = true;
+        stepData.forEach((_, i) => {
+          setTimeout(() => setActiveStep(i), i * 800);
+        });
+      }
+    }, { threshold: 0.3 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section className="landing-section">
+    <section className="landing-section" ref={sectionRef}>
       <h2 className="landing-h2">{t('landing.howTitle')}</h2>
       <div className="landing-steps">
-        {stepData.map((s, i) => (
-          <div className="landing-step" key={i}>
-            <div className="landing-step-num">{s.num}</div>
-            <div className="landing-step-content">
-              <h3>{s.title}</h3>
-              <p>{s.text}</p>
+        {stepData.map((s, i) => {
+          const done = i <= activeStep;
+          const current = i === activeStep;
+          return (
+            <div className={`landing-step${done ? ' step-done' : ''}${current ? ' step-current' : ''}`} key={i}>
+              <div className="landing-step-check">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {done && <path d="M20 6L9 17l-5-5" className="check-path" />}
+                </svg>
+              </div>
+              {i < stepData.length - 1 && (
+                <div className={`landing-step-line${done ? ' line-done' : ''}`} />
+              )}
+              <div className="landing-step-content">
+                <h3>{s.title}</h3>
+                <p>{s.text}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
