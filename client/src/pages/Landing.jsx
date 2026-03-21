@@ -269,20 +269,15 @@ function ComparisonSection() {
         ))}
       </div>
 
-      {/* Mobile: row-based layout */}
+      {/* Mobile: "loro vs tu" compact layout */}
       <div className="comp-mobile">
-        <div className="comp-mobile-headers">
-          {headers.map((h, i) => (
-            <span key={i} className={i === 2 ? 'comp-mobile-header highlight' : 'comp-mobile-header'}>{h}</span>
-          ))}
-        </div>
         {rowLabels.map((label, ri) => (
           <div className="comp-mobile-row" key={ri}>
             <div className="comp-mobile-label">{label}</div>
-            <div className="comp-mobile-values">
-              <span className="comp-mobile-val">{columns[0][ri]}</span>
-              <span className="comp-mobile-val">{columns[1][ri]}</span>
-              <span className="comp-mobile-val highlight">{columns[2][ri]}</span>
+            <div className="comp-mobile-vs">
+              <span className="comp-mobile-them">{columns[0][ri]}</span>
+              <span className="comp-mobile-arrow">{'\u2192'}</span>
+              <span className="comp-mobile-us">{columns[2][ri]}</span>
             </div>
           </div>
         ))}
