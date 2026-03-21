@@ -95,8 +95,7 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
     month: 'short',
   });
 
-  const handleStatusChange = async (e) => {
-    const newStatus = e.target.value;
+  const handleStatusChange = async (newStatus) => {
     try {
       await api.updateGenerated(item.id, { status: newStatus });
       onUpdate(item.id, { status: newStatus });
@@ -179,24 +178,48 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
   const currentStatus = item.status || 'generated';
   const statusColor = STATUS_MAP[currentStatus]?.color || '#ccc';
 
+  const statusKeys = Object.keys(STATUS_MAP);
+  const activeIndex = statusKeys.indexOf(currentStatus);
+
   return (
     <div className="candidature-card card">
+      {/* Status stepper timeline */}
+      <div className="status-stepper">
+        {statusKeys.map((key, i) => {
+          const meta = STATUS_MAP[key];
+          const isActive = key === currentStatus;
+          const isPast = i < activeIndex;
+          return (
+            <button
+              key={key}
+              className={`stepper-step${isActive ? ' active' : ''}${isPast ? ' past' : ''}`}
+              onClick={() => handleStatusChange(key)}
+              title={meta.label}
+              style={{ '--step-color': meta.color }}
+            >
+              <span className="stepper-dot" />
+              <span className="stepper-label">{meta.label}</span>
+            </button>
+          );
+        })}
+        <div className="stepper-track">
+          <div
+            className="stepper-fill"
+            style={{
+              width: `${(activeIndex / (statusKeys.length - 1)) * 100}%`,
+              background: statusColor,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Title + actions row */}
       <div className="candidature-top">
         <div className="candidature-title">
           {company ? `${role} \u2014 ${company}` : role}
         </div>
         <div className="candidature-top-right">
           <span className="candidature-date">{date}</span>
-          <select
-            className="status-select"
-            value={currentStatus}
-            onChange={handleStatusChange}
-            style={{ borderColor: statusColor, color: statusColor }}
-          >
-            {Object.entries(STATUS_MAP).map(([val, meta]) => (
-              <option key={val} value={val}>{meta.label}</option>
-            ))}
-          </select>
           <div className="candidature-icon-actions">
             <button
               className="icon-action"

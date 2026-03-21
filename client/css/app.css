@@ -2210,22 +2210,89 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   color: var(--color-text-primary);
 }
 
-.status-select {
-  -webkit-appearance: none;
-  appearance: none;
-  padding: 5px 28px 5px 10px;
-  border: 2px solid var(--color-border-input);
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
+/* Status stepper timeline */
+.status-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  padding: 0 4px;
+  margin-bottom: 16px;
+}
+
+.stepper-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
   cursor: pointer;
-  background: var(--color-bg-input);
-  color: var(--color-text-primary);
-  outline: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239E9E9E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
+  padding: 0;
+  z-index: 1;
+  flex: 1;
+}
+
+.stepper-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  transition: all 0.25s ease;
+}
+.stepper-step.past .stepper-dot {
+  border-color: var(--step-color);
+  background: var(--step-color);
+}
+.stepper-step.active .stepper-dot {
+  width: 20px;
+  height: 20px;
+  border-color: var(--step-color);
+  background: var(--step-color);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--step-color) 50%, transparent);
+}
+
+.stepper-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
   white-space: nowrap;
+  transition: color 0.25s ease;
+}
+.stepper-step.active .stepper-label {
+  color: var(--step-color);
+  font-weight: 700;
+}
+.stepper-step.past .stepper-label {
+  color: var(--color-text-secondary);
+}
+
+/* Track line behind dots */
+.stepper-track {
+  position: absolute;
+  top: 9px;
+  left: 20px;
+  right: 20px;
+  height: 2px;
+  background: var(--color-border);
+  z-index: 0;
+}
+.stepper-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.4s ease;
+}
+
+.stepper-step:hover .stepper-dot {
+  border-color: var(--step-color);
+  transform: scale(1.2);
+}
+
+@media (max-width: 480px) {
+  .stepper-label { font-size: 9px; }
+  .stepper-dot { width: 14px; height: 14px; }
+  .stepper-step.active .stepper-dot { width: 18px; height: 18px; }
+  .stepper-track { top: 7px; }
 }
 
 .candidature-meta {
