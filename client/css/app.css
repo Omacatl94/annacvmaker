@@ -3306,13 +3306,12 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
 
 .login-email-form {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
 }
-.login-email-form .waitlist-input {
-  flex: 1;
-  min-width: 200px;
+.login-email-form .btn-primary {
+  align-self: flex-end;
 }
 
 .login-modal-back {
@@ -5456,9 +5455,12 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
 /* Landing waitlist inline */
 .waitlist-inline-form {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.waitlist-inline-form .btn-primary {
+  align-self: flex-end;
 }
 
 /* Admin invite */
