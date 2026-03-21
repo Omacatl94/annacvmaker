@@ -2712,6 +2712,103 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   border-left: 3px solid var(--color-accent-border);
 }
 
+/* Bento grid — features */
+.bento-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 12px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Desktop: first item spans full width */
+.bento-item-0 {
+  grid-column: 1 / -1;
+}
+
+.bento-item {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: border-color var(--transition-fast);
+}
+.bento-item:hover {
+  border-color: var(--color-accent-border);
+}
+
+/* Hero item (first) — accent border */
+.bento-item-0 {
+  border-color: var(--color-accent-border);
+  background: linear-gradient(135deg, rgba(0, 230, 118, 0.06) 0%, var(--color-bg-tertiary) 60%);
+}
+[data-theme="light"] .bento-item-0 {
+  background: linear-gradient(135deg, rgba(0, 230, 118, 0.08) 0%, var(--color-bg-tertiary) 60%);
+}
+
+.bento-icon {
+  margin-bottom: 12px;
+  color: var(--color-accent);
+}
+.bento-icon svg {
+  width: 28px;
+  height: 28px;
+}
+.bento-item-0 .bento-icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.bento-item h3 {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+.bento-item-0 h3 {
+  font-size: 18px;
+}
+
+.bento-item p {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.bento-item-0 p {
+  font-size: 14px;
+}
+
+/* Mobile bento: 2 columns, hero spans full */
+@media (max-width: 767px) {
+  .bento-grid {
+    gap: 8px;
+  }
+  .bento-item {
+    padding: 16px;
+  }
+  .bento-item h3 {
+    font-size: 14px;
+  }
+  .bento-item p {
+    font-size: 12px;
+  }
+  .bento-item-0 h3 {
+    font-size: 16px;
+  }
+  .bento-item-0 p {
+    font-size: 13px;
+  }
+}
+
+/* Very small screens: stack to single column */
+@media (max-width: 380px) {
+  .bento-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Comparison cards */
 /* Desktop cards / Mobile rows toggle */
 .comp-mobile { display: none; }

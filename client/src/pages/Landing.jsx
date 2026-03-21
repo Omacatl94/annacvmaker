@@ -352,11 +352,11 @@ function Features() {
   return (
     <section className="landing-section landing-section-alt">
       <h2 className="landing-h2">{t('landing.featTitle')}</h2>
-      <div className="landing-grid-2">
+      <div className="bento-grid">
         {featureData.map((f, i) => (
-          <div className="landing-card" key={i}>
-            <div className="landing-card-icon">
-              <Icon name={f.iconName} size={32} />
+          <div className={`bento-item bento-item-${i}`} key={i}>
+            <div className="bento-icon">
+              <Icon name={f.iconName} size={i === 0 ? 36 : 28} />
             </div>
             <h3>{f.title}</h3>
             <p>{f.text}</p>
