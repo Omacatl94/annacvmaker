@@ -50,7 +50,7 @@ export async function sendWelcomeEmail(to, name) {
   await resend.emails.send({
     from: config.emailFrom,
     to,
-    subject: 'Sei dentro — benvenuto su JobHacker',
+    subject: 'Sei dentro \u2014 ti aspettavamo!',
     html: `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background:#0a0a0a;">
@@ -123,7 +123,7 @@ export async function sendFeedbackRewardEmail(to, name, credits, note) {
   await resend.emails.send({
     from: config.emailFrom,
     to,
-    subject: `Grazie per il feedback \u2014 +${credits} Raccoin`,
+    subject: `Il tuo feedback vale \u2014 +${credits} Raccoin`,
     html: `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background:#0a0a0a;">
@@ -136,7 +136,7 @@ export async function sendFeedbackRewardEmail(to, name, credits, note) {
       ${firstName}, il tuo feedback conta!
     </p>
     <p style="font-size:15px;line-height:1.6;color:#b0b0b0;margin:0 0 8px;text-align:center;">
-      Il procione ha apprezzato la tua segnalazione e ti ha premiato con
+      Il procione ha apprezzato la tua segnalazione e ti ha assegnato
     </p>
     <p style="font-size:32px;font-weight:800;color:#00E676;margin:0 0 20px;text-align:center;">
       +${credits} Raccoin

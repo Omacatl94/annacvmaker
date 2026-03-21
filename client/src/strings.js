@@ -18,7 +18,7 @@ const it = {
     loginLink: 'Accedi',
     loginModalSubtitle: 'Inserisci la tua email per verificare il tuo account.',
     loginCheckBtn: 'Verifica',
-    loginWelcomeBack: 'Bentornato!',
+    loginWelcomeBack: 'Che bello rivederti!',
     loginChooseProvider: 'Scegli come accedere:',
     loginBackBtn: '\u2190 Cambia email',
     loginWaitlisted: 'Sei in lista d\'attesa',
@@ -311,8 +311,8 @@ const it = {
     empty: 'Nessuna notifica',
     credits_received:  (d) => `Hai ricevuto ${d.credits} Raccoin${d.reason ? `: "${d.reason}"` : ''}`,
     credits_purchased: (d) => `Acquisto completato: +${d.credits} Raccoin`,
-    feedback_rewarded: (d) => `Il tuo feedback \u00E8 stato premiato con ${d.credits} Raccoin`,
-    welcome_activated: (d) => `Benvenuto! Il tuo account \u00E8 attivo \u2014 hai ${d.credits} Raccoin`,
+    feedback_rewarded: (d) => `Il tuo feedback ha fruttato ${d.credits} Raccoin`,
+    welcome_activated: (d) => `Il tuo account \u00E8 attivo \u2014 hai ${d.credits} Raccoin!`,
   },
 
   // ── Common ──
