@@ -2210,89 +2210,190 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   color: var(--color-text-primary);
 }
 
-/* Status stepper timeline */
-.status-stepper {
+/* Pipeline stepper */
+.pipeline-stepper {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
   position: relative;
-  padding: 0 4px;
   margin-bottom: 16px;
 }
 
-.stepper-step {
+.pipeline-steps {
+  display: flex;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.pipeline-step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex: 1;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
-  z-index: 1;
-  flex: 1;
+  padding: 4px 0;
 }
 
-.stepper-dot {
-  width: 16px;
-  height: 16px;
+.pipeline-dot {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 2px solid var(--color-border);
   background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
   transition: all 0.25s ease;
 }
-.stepper-step.past .stepper-dot {
+.pipeline-step.past .pipeline-dot {
   border-color: var(--step-color);
   background: var(--step-color);
+  color: #0a0a0a;
 }
-.stepper-step.active .stepper-dot {
-  width: 20px;
-  height: 20px;
+[data-theme="light"] .pipeline-step.past .pipeline-dot { color: #fff; }
+.pipeline-step.active .pipeline-dot {
   border-color: var(--step-color);
   background: var(--step-color);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--step-color) 50%, transparent);
+  color: #0a0a0a;
+  transform: scale(1.2);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--step-color) 50%, transparent);
 }
+[data-theme="light"] .pipeline-step.active .pipeline-dot { color: #fff; }
 
-.stepper-label {
-  font-size: 10px;
+.pipeline-label {
+  font-size: 9px;
   color: var(--color-text-muted);
   white-space: nowrap;
   transition: color 0.25s ease;
+  text-align: center;
 }
-.stepper-step.active .stepper-label {
+.pipeline-step.active .pipeline-label {
   color: var(--step-color);
   font-weight: 700;
+  font-size: 10px;
 }
-.stepper-step.past .stepper-label {
+.pipeline-step.past .pipeline-label {
   color: var(--color-text-secondary);
 }
+.pipeline-step:hover .pipeline-dot {
+  border-color: var(--step-color);
+  transform: scale(1.15);
+}
 
-/* Track line behind dots */
-.stepper-track {
+/* Track behind dots */
+.pipeline-track {
   position: absolute;
-  top: 9px;
-  left: 20px;
-  right: 20px;
-  height: 2px;
+  top: 15px;
+  left: 24px;
+  right: 48px;
+  height: 4px;
   background: var(--color-border);
+  border-radius: 2px;
   z-index: 0;
 }
-.stepper-fill {
+.pipeline-fill {
   height: 100%;
-  border-radius: 1px;
-  transition: width 0.4s ease;
+  border-radius: 2px;
+  transition: width 0.4s ease, background 0.3s ease;
 }
 
-.stepper-step:hover .stepper-dot {
-  border-color: var(--step-color);
-  transform: scale(1.2);
+/* Rejected button (always visible, right side) */
+.pipeline-rejected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.pipeline-rejected:hover {
+  border-color: #EF5350;
+  color: #EF5350;
+}
+.pipeline-rejected.active {
+  border-color: #EF5350;
+  background: #EF5350;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(239, 83, 80, 0.4);
+}
+
+/* Raccoon prompt */
+.raccoon-prompt {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: rgba(0, 230, 118, 0.06);
+  border: 1px solid rgba(0, 230, 118, 0.15);
+  border-radius: var(--radius-md);
+  animation: slideUp 0.3s ease-out;
+}
+.raccoon-prompt-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.raccoon-prompt-body {
+  flex: 1;
+  min-width: 0;
+}
+.raccoon-prompt-text {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+.raccoon-prompt-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.raccoon-prompt-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-input);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  outline: none;
+}
+.raccoon-prompt-input:focus {
+  border-color: var(--color-accent);
+}
+
+/* Notes textarea */
+.notes-textarea {
+  resize: vertical;
+  min-height: 40px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 @media (max-width: 480px) {
-  .stepper-label { font-size: 9px; }
-  .stepper-dot { width: 14px; height: 14px; }
-  .stepper-step.active .stepper-dot { width: 18px; height: 18px; }
-  .stepper-track { top: 7px; }
+  .pipeline-dot { width: 20px; height: 20px; }
+  .pipeline-dot svg { width: 10px; height: 10px; }
+  .pipeline-label { font-size: 8px; }
+  .pipeline-step.active .pipeline-label { font-size: 9px; }
+  .pipeline-track { top: 13px; left: 20px; right: 40px; }
+  .pipeline-rejected { width: 24px; height: 24px; }
+  .raccoon-prompt { flex-direction: column; gap: 8px; }
+  .raccoon-prompt-avatar { width: 28px; height: 28px; }
 }
 
 .candidature-meta {

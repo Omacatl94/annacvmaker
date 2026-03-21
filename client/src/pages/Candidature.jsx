@@ -6,13 +6,25 @@ import Icon from '../components/Icon';
 import layoutCSS from '../../css/cv-layout.css?raw';
 import themesCSS from '../../css/cv-themes.css?raw';
 
-const STATUS_MAP = {
-  generated: { label: 'Generato', color: '#9E9E9E' },
-  sent: { label: 'Inviato', color: '#00E676' },
-  waiting: { label: 'In attesa', color: '#FFB300' },
-  interview: { label: 'Colloquio', color: '#42A5F5' },
-  rejected: { label: 'Rifiutato', color: '#EF5350' },
-};
+// Pipeline stages — sequential (except rejected, reachable from any)
+const PIPELINE = [
+  { key: 'generated',    label: 'Generato',    color: '#9E9E9E', icon: 'file-text',    prompt: null },
+  { key: 'sent',         label: 'Inviato',     color: '#00E676', icon: 'send',         prompt: 'Dove hai inviato il CV? Via email, portale, LinkedIn?' },
+  { key: 'phone_screen', label: 'Chiamata',    color: '#42A5F5', icon: 'phone',        prompt: 'Come \u00E8 andata la chiamata? Che impressione hai avuto?' },
+  { key: 'interview',    label: 'Colloquio',   color: '#7C4DFF', icon: 'users',        prompt: 'Com\u0027\u00E8 andato il colloquio? Quante persone c\u0027erano?' },
+  { key: 'negotiation',  label: 'Trattativa',  color: '#FFB300', icon: 'handshake',    prompt: 'Che proposta ti hanno fatto? Come ti sembra?' },
+  { key: 'hired',        label: 'Assunto!',    color: '#00E676', icon: 'trophy',       prompt: 'Congratulazioni! Quando inizi?' },
+];
+
+const REJECTED = { key: 'rejected', label: 'Scartato', color: '#EF5350', icon: 'x-circle', prompt: 'Ti hanno dato un feedback? Cosa puoi migliorare?' };
+
+const ALL_STATUSES = [...PIPELINE, REJECTED];
+const STATUS_MAP = Object.fromEntries(ALL_STATUSES.map(s => [s.key, s]));
+
+function getPipelineIndex(status) {
+  const idx = PIPELINE.findIndex(s => s.key === status);
+  return idx >= 0 ? idx : -1;
+}
 
 export default function Candidature() {
   const [items, setItems] = useState([]);
@@ -82,6 +94,7 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [letterLoading, setLetterLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [raccoonPrompt, setRaccoonPrompt] = useState(null);
 
   const coverLetter = typeof item.cover_letter_data === 'string'
     ? JSON.parse(item.cover_letter_data)
@@ -95,13 +108,49 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
     month: 'short',
   });
 
+  const currentStatus = item.status || 'generated';
+  const currentMeta = STATUS_MAP[currentStatus] || STATUS_MAP.generated;
+  const pipelineIndex = getPipelineIndex(currentStatus);
+  const isRejected = currentStatus === 'rejected';
+
   const handleStatusChange = async (newStatus) => {
+    if (newStatus === currentStatus) return;
+
+    const meta = STATUS_MAP[newStatus];
+    const now = new Date();
+    const timestamp = now.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) +
+      ' ' + now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const logEntry = `[${timestamp}] ${meta.label}`;
+
+    // Auto-log in notes
+    const existingNotes = item.notes || '';
+    const newNotes = existingNotes ? `${existingNotes}\n${logEntry}` : logEntry;
+
     try {
-      await api.updateGenerated(item.id, { status: newStatus });
-      onUpdate(item.id, { status: newStatus });
+      await api.updateGenerated(item.id, { status: newStatus, notes: newNotes });
+      onUpdate(item.id, { status: newStatus, notes: newNotes });
     } catch {
-      /* silent */
+      return;
     }
+
+    // Show raccoon prompt if available
+    if (meta.prompt) {
+      setRaccoonPrompt({ status: newStatus, prompt: meta.prompt });
+    }
+  };
+
+  const handleRaccoonSubmit = async (text) => {
+    if (!text.trim()) {
+      setRaccoonPrompt(null);
+      return;
+    }
+    const meta = STATUS_MAP[raccoonPrompt.status];
+    const updatedNotes = (item.notes || '') + `\n  \u2192 ${text.trim()}`;
+    try {
+      await api.updateGenerated(item.id, { notes: updatedNotes });
+      onUpdate(item.id, { notes: updatedNotes });
+    } catch { /* silent */ }
+    setRaccoonPrompt(null);
   };
 
   const handleNotesChange = (e) => {
@@ -111,9 +160,7 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
     saveTimerRef.current = setTimeout(async () => {
       try {
         await api.updateGenerated(item.id, { notes: val });
-      } catch {
-        /* silent */
-      }
+      } catch { /* silent */ }
     }, 800);
   };
 
@@ -128,8 +175,6 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
       if (!profile) throw new Error('Profilo non disponibile per questo CV');
 
       const cvHTML = buildCVHTML(profile, data, item.style || 'professional', item.language || 'it');
-
-      // layoutCSS and themesCSS imported at top via ?raw
 
       const fullHTML =
         '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
@@ -164,7 +209,7 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
 
   const handleDelete = async () => {
     const label = item.target_role || 'questa candidatura';
-    if (!confirm(`Eliminare "${label}"? L'azione è irreversibile.`)) return;
+    if (!confirm(`Eliminare "${label}"? L'azione \u00E8 irreversibile.`)) return;
     setDeleting(true);
     try {
       await api.deleteGenerated(item.id);
@@ -175,43 +220,57 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
     }
   };
 
-  const currentStatus = item.status || 'generated';
-  const statusColor = STATUS_MAP[currentStatus]?.color || '#ccc';
-
-  const statusKeys = Object.keys(STATUS_MAP);
-  const activeIndex = statusKeys.indexOf(currentStatus);
-
   return (
     <div className="candidature-card card">
-      {/* Status stepper timeline */}
-      <div className="status-stepper">
-        {statusKeys.map((key, i) => {
-          const meta = STATUS_MAP[key];
-          const isActive = key === currentStatus;
-          const isPast = i < activeIndex;
-          return (
-            <button
-              key={key}
-              className={`stepper-step${isActive ? ' active' : ''}${isPast ? ' past' : ''}`}
-              onClick={() => handleStatusChange(key)}
-              title={meta.label}
-              style={{ '--step-color': meta.color }}
-            >
-              <span className="stepper-dot" />
-              <span className="stepper-label">{meta.label}</span>
-            </button>
-          );
-        })}
-        <div className="stepper-track">
+      {/* Pipeline stepper */}
+      <div className="pipeline-stepper">
+        <div className="pipeline-track">
           <div
-            className="stepper-fill"
+            className="pipeline-fill"
             style={{
-              width: `${(activeIndex / (statusKeys.length - 1)) * 100}%`,
-              background: statusColor,
+              width: isRejected ? '100%' : `${(pipelineIndex / (PIPELINE.length - 1)) * 100}%`,
+              background: currentMeta.color,
             }}
           />
         </div>
+        <div className="pipeline-steps">
+          {PIPELINE.map((step, i) => {
+            const isActive = step.key === currentStatus;
+            const isPast = !isRejected && i < pipelineIndex;
+            return (
+              <button
+                key={step.key}
+                className={`pipeline-step${isActive ? ' active' : ''}${isPast ? ' past' : ''}`}
+                onClick={() => handleStatusChange(step.key)}
+                title={step.label}
+                style={{ '--step-color': step.color }}
+              >
+                <span className="pipeline-dot">
+                  <Icon name={step.icon} size={12} />
+                </span>
+                <span className="pipeline-label">{step.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        {/* Rejected button separate */}
+        <button
+          className={`pipeline-rejected${isRejected ? ' active' : ''}`}
+          onClick={() => handleStatusChange('rejected')}
+          title="Scartato"
+        >
+          <Icon name="x-circle" size={14} />
+        </button>
       </div>
+
+      {/* Raccoon prompt */}
+      {raccoonPrompt && (
+        <RaccoonPrompt
+          prompt={raccoonPrompt.prompt}
+          onSubmit={handleRaccoonSubmit}
+          onSkip={() => setRaccoonPrompt(null)}
+        />
+      )}
 
       {/* Title + actions row */}
       <div className="candidature-top">
@@ -258,14 +317,57 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
         </div>
       </div>
 
+      {/* Notes (textarea for multi-line log) */}
       <div className="candidature-notes">
-        <input
-          type="text"
-          className="notes-input"
+        <textarea
+          className="notes-input notes-textarea"
           value={item.notes || ''}
-          placeholder='Appunti — es. "Colloquio il 15/03, parlato con HR"'
+          placeholder="Il diario della tua candidatura appare qui..."
           onChange={handleNotesChange}
+          rows={Math.max(2, (item.notes || '').split('\n').length)}
         />
+      </div>
+    </div>
+  );
+}
+
+// ── Raccoon Prompt Component ──
+
+function RaccoonPrompt({ prompt, onSubmit, onSkip }) {
+  const [text, setText] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleSubmit = () => {
+    onSubmit(text);
+    setText('');
+  };
+
+  return (
+    <div className="raccoon-prompt">
+      <img src="/img/mascot/avatar.webp" alt="" className="raccoon-prompt-avatar" />
+      <div className="raccoon-prompt-body">
+        <p className="raccoon-prompt-text">{prompt}</p>
+        <div className="raccoon-prompt-form">
+          <input
+            ref={inputRef}
+            type="text"
+            className="raccoon-prompt-input"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            placeholder="Scrivi qui..."
+          />
+          <button className="btn-sm btn-primary" onClick={handleSubmit}>
+            <Icon name="send" size={14} />
+          </button>
+          <button className="btn-sm" onClick={onSkip}>
+            Salta
+          </button>
+        </div>
       </div>
     </div>
   );
