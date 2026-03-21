@@ -243,25 +243,47 @@ function ComparisonSection() {
     t('landing.compRow5Label'),
   ];
 
-  const cardDefs = [
-    { header: t('landing.compHeader1'), values: [t('landing.compRow1A'), t('landing.compRow2A'), t('landing.compRow3A'), t('landing.compRow4A'), t('landing.compRow5A')], highlight: false },
-    { header: t('landing.compHeader2'), values: [t('landing.compRow1B'), t('landing.compRow2B'), t('landing.compRow3B'), t('landing.compRow4B'), t('landing.compRow5B')], highlight: false },
-    { header: t('landing.compHeader3'), values: [t('landing.compRow1C'), t('landing.compRow2C'), t('landing.compRow3C'), t('landing.compRow4C'), t('landing.compRow5C')], highlight: true },
+  const headers = [t('landing.compHeader1'), t('landing.compHeader2'), t('landing.compHeader3')];
+  const columns = [
+    [t('landing.compRow1A'), t('landing.compRow2A'), t('landing.compRow3A'), t('landing.compRow4A'), t('landing.compRow5A')],
+    [t('landing.compRow1B'), t('landing.compRow2B'), t('landing.compRow3B'), t('landing.compRow4B'), t('landing.compRow5B')],
+    [t('landing.compRow1C'), t('landing.compRow2C'), t('landing.compRow3C'), t('landing.compRow4C'), t('landing.compRow5C')],
   ];
 
   return (
     <section className="landing-section landing-section-alt">
       <h2 className="landing-h2">{t('landing.compTitle')}</h2>
-      <div className="comp-cards">
-        {cardDefs.map((def, ci) => (
-          <div className={def.highlight ? 'comp-card comp-card-highlight' : 'comp-card'} key={ci}>
-            <h3>{def.header}</h3>
+
+      {/* Desktop: card layout */}
+      <div className="comp-cards comp-desktop">
+        {headers.map((header, ci) => (
+          <div className={ci === 2 ? 'comp-card comp-card-highlight' : 'comp-card'} key={ci}>
+            <h3>{header}</h3>
             {rowLabels.map((label, ri) => (
               <div className="comp-row" key={ri}>
                 <span className="comp-row-label">{label}</span>
-                <span className="comp-row-value">{def.values[ri]}</span>
+                <span className="comp-row-value">{columns[ci][ri]}</span>
               </div>
             ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile: row-based layout */}
+      <div className="comp-mobile">
+        <div className="comp-mobile-headers">
+          {headers.map((h, i) => (
+            <span key={i} className={i === 2 ? 'comp-mobile-header highlight' : 'comp-mobile-header'}>{h}</span>
+          ))}
+        </div>
+        {rowLabels.map((label, ri) => (
+          <div className="comp-mobile-row" key={ri}>
+            <div className="comp-mobile-label">{label}</div>
+            <div className="comp-mobile-values">
+              <span className="comp-mobile-val">{columns[0][ri]}</span>
+              <span className="comp-mobile-val">{columns[1][ri]}</span>
+              <span className="comp-mobile-val highlight">{columns[2][ri]}</span>
+            </div>
           </div>
         ))}
       </div>

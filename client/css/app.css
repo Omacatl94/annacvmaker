@@ -2713,6 +2713,13 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
 }
 
 /* Comparison cards */
+/* Desktop cards / Mobile rows toggle */
+.comp-mobile { display: none; }
+@media (max-width: 767px) {
+  .comp-desktop { display: none !important; }
+  .comp-mobile { display: block; }
+}
+
 .comp-cards {
   display: flex;
   gap: 16px;
@@ -2759,6 +2766,58 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
 }
 .comp-card-highlight .comp-row-value {
   color: var(--color-accent);
+}
+
+/* Comparison — mobile row layout */
+.comp-mobile-headers {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.comp-mobile-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 6px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+.comp-mobile-header.highlight {
+  color: var(--color-accent);
+  background: rgba(0, 230, 118, 0.08);
+}
+.comp-mobile-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.comp-mobile-row:last-child {
+  border-bottom: none;
+}
+.comp-mobile-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+.comp-mobile-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  text-align: center;
+}
+.comp-mobile-val {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+.comp-mobile-val.highlight {
+  color: var(--color-accent);
+  font-weight: 700;
+  background: rgba(0, 230, 118, 0.08);
 }
 
 /* Metrics */
