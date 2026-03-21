@@ -1,0 +1,43 @@
+/* ===================================================================
+   CV Themes — color & font definitions via CSS custom properties
+   Apply a theme by setting data-theme on the CV container or ancestor
+   =================================================================== */
+
+/* ===== PROFESSIONAL ===== */
+/* Georgia serif, teal palette — classic corporate look */
+[data-theme="professional"] {
+  --cv-primary: #0d7377;
+  --cv-primary-rgb: 13, 115, 119;
+  --cv-gradient-start: #062e30;
+  --cv-gradient-end: #0d7377;
+  --cv-font-heading: 'Georgia', serif;
+  --cv-font-body: 'Georgia', serif;
+  --cv-badge-bg: #e6f7f7;
+  --cv-badge-text: #065f62;
+}
+
+/* ===== MODERN ===== */
+/* Inter sans-serif, navy palette — clean contemporary feel */
+[data-theme="modern"] {
+  --cv-primary: #1e3a5f;
+  --cv-primary-rgb: 30, 58, 95;
+  --cv-gradient-start: #0f1f33;
+  --cv-gradient-end: #1e3a5f;
+  --cv-font-heading: 'Inter', sans-serif;
+  --cv-font-body: 'Inter', sans-serif;
+  --cv-badge-bg: #e8eef5;
+  --cv-badge-text: #1a3350;
+}
+
+/* ===== MINIMAL ===== */
+/* Lato sans-serif, neutral greys — understated elegance */
+[data-theme="minimal"] {
+  --cv-primary: #333333;
+  --cv-primary-rgb: 51, 51, 51;
+  --cv-gradient-start: #1a1a1a;
+  --cv-gradient-end: #444444;
+  --cv-font-heading: 'Lato', sans-serif;
+  --cv-font-body: 'Lato', sans-serif;
+  --cv-badge-bg: #f0f0f0;
+  --cv-badge-text: #333333;
+}
