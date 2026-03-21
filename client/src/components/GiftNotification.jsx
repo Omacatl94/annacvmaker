@@ -24,8 +24,8 @@ export default function GiftNotification({ gift, onClose }) {
   return (
     <div className="gift-overlay" ref={overlayRef}>
       <div className="gift-modal">
-        <img src="/img/mascot/gift.webp" alt="JH porta un regalo" className="gift-img" />
-        <div className="gift-title">Hai ricevuto {gift.credits} crediti!</div>
+        <img src="/img/mascot/raccoin.jpg" alt="Raccoin" className="gift-img" />
+        <div className="gift-title">Hai ricevuto {gift.credits} Raccoin!</div>
         {gift.reason && <div className="gift-reason">"{gift.reason}"</div>}
         <button className="gift-close" onClick={handleClose}>Grazie, JobHacker!</button>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -8,17 +8,42 @@ import Icon from './Icon';
 import PricingModal from './PricingModal';
 import NotificationBell from './NotificationBell';
 
+const BALANCE_POLL_MS = 30_000;
+
 export default function Header() {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [balance, setBalance] = useState(null);
   const [showPricing, setShowPricing] = useState(false);
-  useEffect(() => {
-    if (user && !user.guest) {
-      api.getBalance().then(data => setBalance(data)).catch(() => {});
-    }
+  const [bump, setBump] = useState(false);
+  const prevTotal = useRef(null);
+
+  const fetchBalance = useCallback(() => {
+    if (!user || user.guest) return;
+    api.getBalance().then(data => {
+      const newTotal = data.openBeta
+        ? Math.max(0, data.dailyLimit - data.dailyUsed) + data.credits
+        : data.credits;
+      if (prevTotal.current !== null && newTotal !== prevTotal.current) {
+        setBump(true);
+        setTimeout(() => setBump(false), 600);
+      }
+      prevTotal.current = newTotal;
+      setBalance(data);
+    }).catch(() => {});
   }, [user]);
+
+  useEffect(() => {
+    fetchBalance();
+    const interval = setInterval(fetchBalance, BALANCE_POLL_MS);
+    const onRefresh = () => fetchBalance();
+    window.addEventListener('balance:refresh', onRefresh);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('balance:refresh', onRefresh);
+    };
+  }, [fetchBalance]);
 
   const tabs = [
     { path: '/', label: 'Il mio CV', guestOk: true },
@@ -75,9 +100,9 @@ export default function Header() {
 
         {user && !user.guest && (
           <button
-            className={`credit-badge ${creditClass()}`}
-            title="Crediti rimasti"
-            aria-label="Crediti rimasti"
+            className={`credit-badge ${creditClass()}${bump ? ' credit-bump' : ''}`}
+            title="Raccoin rimasti"
+            aria-label="Raccoin rimasti"
             onClick={() => setShowPricing(true)}
           >
             <Icon name="coins" size={14} /> {renderCreditBadge()}

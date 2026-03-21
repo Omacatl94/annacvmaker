@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { buildCVHTML } from '../cv/buildCVHTML';
+import { downloadLetterPDF } from '../cv/CoverLetter';
+import Icon from '../components/Icon';
+import layoutCSS from '../../css/cv-layout.css?raw';
+import themesCSS from '../../css/cv-themes.css?raw';
 
 const STATUS_MAP = {
+  generated: { label: 'Generato', color: '#9E9E9E' },
   sent: { label: 'Inviato', color: '#00E676' },
   waiting: { label: 'In attesa', color: '#FFB300' },
   interview: { label: 'Colloquio', color: '#42A5F5' },
@@ -33,43 +37,6 @@ export default function Candidature() {
       })
     : items;
 
-  const handleExportMemo = useCallback(() => {
-    const active = items.filter((i) => i.status !== 'rejected');
-    if (active.length === 0) {
-      alert('Nessuna candidatura attiva da esportare.');
-      return;
-    }
-
-    let text = 'CANDIDATURE ATTIVE - JobHacker\n';
-    text += '='.repeat(40) + '\n\n';
-
-    for (const item of active) {
-      const date = new Date(item.created_at).toLocaleDateString('it-IT');
-      const role = item.target_role || 'Ruolo non specificato';
-      const company = item.target_company || 'Azienda non specificata';
-      const status = STATUS_MAP[item.status]?.label || item.status;
-      const score = item.ats_smart || item.ats_classic || '-';
-
-      text += `${role} - ${company}\n`;
-      text += `Data: ${date} | Stato: ${status} | ATS: ${score}\n`;
-      if (item.location) text += `Sede: ${item.location}\n`;
-      if (item.notes) text += `Note: ${item.notes}\n`;
-      text += '-'.repeat(40) + '\n\n';
-    }
-
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'candidature-memo.txt';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 500);
-  }, [items]);
-
   if (!loaded) return null;
 
   return (
@@ -82,9 +49,6 @@ export default function Candidature() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <button className="btn-secondary" onClick={handleExportMemo}>
-          Esporta memo
-        </button>
       </div>
       <div className="candidature-list">
         {items.length === 0 ? (
@@ -103,6 +67,9 @@ export default function Candidature() {
                   prev.map((it) => (it.id === id ? { ...it, ...updates } : it))
                 );
               }}
+              onDelete={(id) => {
+                setItems((prev) => prev.filter((it) => it.id !== id));
+              }}
             />
           ))
         )}
@@ -111,9 +78,14 @@ export default function Candidature() {
   );
 }
 
-function CandidatureCard({ item, onUpdate }) {
-  const navigate = useNavigate();
+function CandidatureCard({ item, onUpdate, onDelete }) {
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [letterLoading, setLetterLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const coverLetter = typeof item.cover_letter_data === 'string'
+    ? JSON.parse(item.cover_letter_data)
+    : item.cover_letter_data;
   const saveTimerRef = useRef(null);
 
   const role = item.target_role || 'Ruolo non specificato';
@@ -121,14 +93,7 @@ function CandidatureCard({ item, onUpdate }) {
   const date = new Date(item.created_at).toLocaleDateString('it-IT', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric',
   });
-
-  const metaParts = [date];
-  if (item.ats_classic || item.ats_smart) {
-    metaParts.push(`ATS: ${item.ats_smart || item.ats_classic}`);
-  }
-  if (item.location) metaParts.push(item.location);
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
@@ -153,11 +118,6 @@ function CandidatureCard({ item, onUpdate }) {
     }, 800);
   };
 
-  const handleOpenCV = () => {
-    sessionStorage.setItem('openGeneratedCV', JSON.stringify(item));
-    navigate('/genera');
-  };
-
   const handleDownloadPDF = async () => {
     setPdfLoading(true);
     try {
@@ -170,18 +130,7 @@ function CandidatureCard({ item, onUpdate }) {
 
       const cvHTML = buildCVHTML(profile, data, item.style || 'professional', item.language || 'it');
 
-      let layoutCSS = '';
-      let themesCSS = '';
-      try {
-        const [lr, tr] = await Promise.all([
-          fetch('/css/cv-layout.css'),
-          fetch('/css/cv-themes.css'),
-        ]);
-        layoutCSS = await lr.text();
-        themesCSS = await tr.text();
-      } catch {
-        /* proceed without */
-      }
+      // layoutCSS and themesCSS imported at top via ?raw
 
       const fullHTML =
         '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
@@ -214,7 +163,21 @@ function CandidatureCard({ item, onUpdate }) {
     setPdfLoading(false);
   };
 
-  const statusColor = STATUS_MAP[item.status || 'sent']?.color || '#ccc';
+  const handleDelete = async () => {
+    const label = item.target_role || 'questa candidatura';
+    if (!confirm(`Eliminare "${label}"? L'azione è irreversibile.`)) return;
+    setDeleting(true);
+    try {
+      await api.deleteGenerated(item.id);
+      onDelete(item.id);
+    } catch {
+      alert('Errore durante l\'eliminazione.');
+      setDeleting(false);
+    }
+  };
+
+  const currentStatus = item.status || 'generated';
+  const statusColor = STATUS_MAP[currentStatus]?.color || '#ccc';
 
   return (
     <div className="candidature-card card">
@@ -222,24 +185,57 @@ function CandidatureCard({ item, onUpdate }) {
         <div className="candidature-title">
           {company ? `${role} \u2014 ${company}` : role}
         </div>
-        <select
-          className="status-select"
-          value={item.status || 'sent'}
-          onChange={handleStatusChange}
-          style={{ borderColor: statusColor, color: statusColor }}
-        >
-          {Object.entries(STATUS_MAP).map(([val, meta]) => (
-            <option key={val} value={val}>
-              {meta.label}
-            </option>
-          ))}
-        </select>
+        <div className="candidature-top-right">
+          <span className="candidature-date">{date}</span>
+          <select
+            className="status-select"
+            value={currentStatus}
+            onChange={handleStatusChange}
+            style={{ borderColor: statusColor, color: statusColor }}
+          >
+            {Object.entries(STATUS_MAP).map(([val, meta]) => (
+              <option key={val} value={val}>{meta.label}</option>
+            ))}
+          </select>
+          <div className="candidature-icon-actions">
+            <button
+              className="icon-action"
+              title="Scarica CV (PDF)"
+              aria-label="Scarica CV PDF"
+              disabled={pdfLoading}
+              onClick={handleDownloadPDF}
+            >
+              <Icon name={pdfLoading ? 'clock' : 'download'} size={20} />
+            </button>
+            {coverLetter && (
+              <button
+                className="icon-action"
+                title="Scarica lettera (PDF)"
+                aria-label="Scarica lettera PDF"
+                disabled={letterLoading}
+                onClick={async () => {
+                  setLetterLoading(true);
+                  try { await downloadLetterPDF(coverLetter, item.target_role || 'presentazione'); } catch { /* silent */ }
+                  setLetterLoading(false);
+                }}
+              >
+                <Icon name={letterLoading ? 'clock' : 'mail'} size={20} />
+              </button>
+            )}
+            <button
+              className="icon-action icon-action-danger"
+              title="Elimina"
+              aria-label="Elimina candidatura"
+              disabled={deleting}
+              onClick={handleDelete}
+            >
+              <Icon name="trash" size={20} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="candidature-meta">{metaParts.join(' \u00B7 ')}</div>
-
       <div className="candidature-notes">
-        <span className="notes-label">Note: </span>
         <input
           type="text"
           className="notes-input"
@@ -247,19 +243,6 @@ function CandidatureCard({ item, onUpdate }) {
           placeholder='Appunti — es. "Colloquio il 15/03, parlato con HR"'
           onChange={handleNotesChange}
         />
-      </div>
-
-      <div className="candidature-actions">
-        <button className="btn-secondary btn-sm" onClick={handleOpenCV}>
-          Apri CV
-        </button>
-        <button
-          className="btn-secondary btn-sm"
-          disabled={pdfLoading}
-          onClick={handleDownloadPDF}
-        >
-          {pdfLoading ? 'Generazione...' : 'Scarica PDF'}
-        </button>
       </div>
     </div>
   );

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { t } from '../strings';
 import { useAuth } from '../hooks/useAuth';
-import ProfileSummary from '../cv/ProfileSummary';
 import Generator from '../cv/Generator';
 import Editor from '../cv/Editor';
 import Preview from '../cv/Preview';
@@ -151,6 +150,15 @@ export default function Genera() {
     }
   }, [savedCvId]);
 
+  const handleLetterGenerated = useCallback(async (letterData) => {
+    if (!savedCvId) return;
+    try {
+      await api.updateGenerated(savedCvId, { cover_letter_data: letterData });
+    } catch (err) {
+      console.error('[coverLetter] Errore salvataggio lettera:', err.message);
+    }
+  }, [savedCvId]);
+
   const handleNewGeneration = useCallback(() => {
     setGenerated(null);
     setJobDescription('');
@@ -229,6 +237,7 @@ export default function Genera() {
           generated={generated}
           jobDescription={jobDescription}
           lang={lang}
+          onLetterGenerated={handleLetterGenerated}
         />
       </main>
     );
@@ -237,8 +246,6 @@ export default function Genera() {
   // Pre-generation view
   return (
     <main className="dashboard-main">
-      <ProfileSummary formData={profile} />
-
       <Generator
         profile={profile}
         style={style}

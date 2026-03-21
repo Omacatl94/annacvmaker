@@ -58,52 +58,39 @@ export default function Users() {
           onChange={handleSearchChange}
         />
       </div>
-      <div className="admin-table-wrap">
-        {loading ? (
-          'Caricamento...'
-        ) : (
-          <>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  {['Email', 'Nome', 'Status', 'Crediti', 'CV generati', 'Spesa', 'Ultimo login', 'Registrato'].map(
-                    (col) => (
-                      <th key={col}>{col}</th>
-                    )
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <UserRow key={u.id} user={u} />
-                ))}
-              </tbody>
-            </table>
-            {totalPages > 1 && (
-              <div className="admin-pagination">
-                {offset > 0 && (
-                  <button className="btn-sm" onClick={() => handlePageChange(offset - PAGE_SIZE)}>
-                    {'\u2190'} Precedente
-                  </button>
-                )}
-                <span>
-                  Pagina {currentPage} di {totalPages} ({total} utenti)
-                </span>
-                {offset + PAGE_SIZE < total && (
-                  <button className="btn-sm" onClick={() => handlePageChange(offset + PAGE_SIZE)}>
-                    Successiva {'\u2192'}
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {loading ? (
+        <div className="user-cards-loading">Caricamento...</div>
+      ) : (
+        <>
+          <div className="user-cards">
+            {users.map((u) => (
+              <UserCard key={u.id} user={u} />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="admin-pagination">
+              {offset > 0 && (
+                <button className="btn-sm" onClick={() => handlePageChange(offset - PAGE_SIZE)}>
+                  {'\u2190'} Prec
+                </button>
+              )}
+              <span>
+                {currentPage}/{totalPages} ({total})
+              </span>
+              {offset + PAGE_SIZE < total && (
+                <button className="btn-sm" onClick={() => handlePageChange(offset + PAGE_SIZE)}>
+                  Succ {'\u2192'}
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }
 
-function UserRow({ user: initialUser }) {
+function UserCard({ user: initialUser }) {
   const [user, setUser] = useState(initialUser);
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState(null);
@@ -111,9 +98,7 @@ function UserRow({ user: initialUser }) {
   const [editingCredits, setEditingCredits] = useState(false);
   const [creditVal, setCreditVal] = useState(user.credits);
   const [creditReason, setCreditReason] = useState('');
-  const [activating, setActivating] = useState(false);
-
-  const handleToggleDetail = async () => {
+  const handleToggle = async () => {
     if (expanded) {
       setExpanded(false);
       return;
@@ -131,133 +116,159 @@ function UserRow({ user: initialUser }) {
     }
   };
 
-  const handleActivate = async (e) => {
-    e.stopPropagation();
-    if (!window.confirm("Attivare questo utente? Ricevera' 2 crediti, 3 inviti e un'email di benvenuto.")) return;
-    setActivating(true);
-    try {
-      await api.adminActivateUser(user.id);
-      setUser((prev) => ({ ...prev, status: 'active' }));
-    } catch (err) {
-      alert('Errore: ' + err.message);
-    }
-    setActivating(false);
-  };
-
   const handleSaveCredits = async () => {
     try {
       await api.adminUpdateCredits(user.id, { credits: +creditVal, reason: creditReason });
       setUser((prev) => ({ ...prev, credits: +creditVal }));
       setEditingCredits(false);
+      setCreditReason('');
     } catch (err) {
       alert('Errore: ' + err.message);
     }
   };
 
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('it-IT') : '\u2014';
+  const spent = '\u20AC' + (+user.total_spent_cents / 100).toFixed(2);
+
   return (
-    <>
-      <tr style={{ cursor: 'pointer' }} onClick={handleToggleDetail}>
-        <td>{user.email}</td>
-        <td>{user.name || '-'}</td>
-        <td>
-          {user.status === 'waitlist' ? (
-            <>
-              <span className="admin-badge waitlist">waitlist</span>
+    <div className={`user-card${expanded ? ' expanded' : ''}`}>
+      {/* Always-visible header */}
+      <div className="user-card-header" onClick={handleToggle}>
+        <div className="user-card-primary">
+          <span className="user-card-name">{user.name || user.email.split('@')[0]}</span>
+          <span className={`admin-badge ${user.status}`}>{user.status}</span>
+        </div>
+        <div className="user-card-email">{user.email}</div>
+        <div className="user-card-summary">
+          <span>{user.credits} Raccoin</span>
+          <span className="user-card-dot">{'\u00B7'}</span>
+          <span>{user.cvs_generated} CV</span>
+          <span className="user-card-dot">{'\u00B7'}</span>
+          <span>{spent}</span>
+        </div>
+        <span className={`user-card-chevron${expanded ? ' open' : ''}`}>{'\u276F'}</span>
+      </div>
+
+      {/* Expandable detail */}
+      {expanded && (
+        <div className="user-card-body">
+          {/* Section 1: Stats KPI */}
+          <div className="user-card-section-block">
+            <div className="section-block-title">Statistiche</div>
+            <div className="user-card-kpis">
+              <div className="user-card-kpi">
+                <span className="kpi-num">{user.credits}</span>
+                <span className="kpi-label-sm">Raccoin</span>
+              </div>
+              <div className="user-card-kpi">
+                <span className="kpi-num">{user.cvs_generated}</span>
+                <span className="kpi-label-sm">CV generati</span>
+              </div>
+              <div className="user-card-kpi">
+                <span className="kpi-num">{spent}</span>
+                <span className="kpi-label-sm">Spesa</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Dates */}
+          <div className="user-card-section-block">
+            <div className="section-block-title">Date</div>
+            <div className="user-card-dates">
+              <div className="user-card-date-item">
+                <span className="date-label">Ultimo login</span>
+                <span className="date-value">{fmtDate(user.last_login)}</span>
+              </div>
+              <div className="user-card-date-item">
+                <span className="date-label">Registrato</span>
+                <span className="date-value">{fmtDate(user.created_at)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Actions */}
+          <div className="user-card-section-block">
+            <div className="section-block-title">Azioni</div>
+            <div className="user-card-actions-row">
               <button
-                className="btn-sm btn-activate"
-                disabled={activating}
-                onClick={handleActivate}
+                className="btn-sm"
+                onClick={() => setEditingCredits(!editingCredits)}
               >
-                {activating ? '...' : 'Attiva'}
-              </button>
-            </>
-          ) : (
-            <span className="admin-badge active">active</span>
-          )}
-        </td>
-        <td className="credits-cell">
-          <span>{user.credits}</span>
-          <button
-            className="btn-sm admin-edit-credits"
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditingCredits(!editingCredits);
-            }}
-          >
-            Modifica
-          </button>
-          {editingCredits && (
-            <div className="credit-editor" onClick={(e) => e.stopPropagation()}>
-              <input
-                type="number"
-                value={creditVal}
-                min={0}
-                onChange={(e) => setCreditVal(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Motivo"
-                value={creditReason}
-                onChange={(e) => setCreditReason(e.target.value)}
-              />
-              <button className="btn-sm btn-primary" onClick={handleSaveCredits}>
-                Salva
+                Modifica Raccoin
               </button>
             </div>
-          )}
-        </td>
-        <td>{user.cvs_generated}</td>
-        <td>{'\u20AC' + (+user.total_spent_cents / 100).toFixed(2)}</td>
-        <td>{user.last_login ? new Date(user.last_login).toLocaleDateString('it-IT') : '-'}</td>
-        <td>{new Date(user.created_at).toLocaleDateString('it-IT')}</td>
-      </tr>
-      {expanded && (
-        <tr className="user-detail-row">
-          <td colSpan={8}>
-            {detailLoading ? (
-              'Caricamento...'
-            ) : detail?.error ? (
-              `Errore: ${detail.error}`
-            ) : detail ? (
-              <UserDetail detail={detail} />
-            ) : null}
-          </td>
-        </tr>
+            {editingCredits && (
+              <div className="user-card-credit-editor">
+                <input
+                  type="number"
+                  value={creditVal}
+                  min={0}
+                  onChange={(e) => setCreditVal(e.target.value)}
+                  placeholder="Raccoin"
+                />
+                <input
+                  type="text"
+                  placeholder="Motivo"
+                  value={creditReason}
+                  onChange={(e) => setCreditReason(e.target.value)}
+                />
+                <div className="credit-editor-btns">
+                  <button className="btn-sm btn-primary" onClick={handleSaveCredits}>
+                    Salva
+                  </button>
+                  <button className="btn-sm" onClick={() => setEditingCredits(false)}>
+                    Annulla
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 4: Activity history */}
+          {detailLoading ? (
+            <div className="user-card-detail-loading">Caricamento dettagli...</div>
+          ) : detail?.error ? (
+            <div className="user-card-detail-error">Errore: {detail.error}</div>
+          ) : detail ? (
+            <UserDetail detail={detail} />
+          ) : null}
+        </div>
       )}
-    </>
+    </div>
   );
 }
 
 function UserDetail({ detail }) {
   if (detail.purchases.length === 0 && detail.usage.length === 0) {
-    return <span>Nessuna attivit&agrave; registrata.</span>;
+    return <div className="user-card-no-activity">Nessuna attivit&agrave; registrata.</div>;
   }
 
   return (
-    <>
+    <div className="user-card-activity">
       {detail.purchases.length > 0 && (
-        <>
+        <div className="user-card-section">
           <h4>Acquisti</h4>
           {detail.purchases.map((p, i) => (
-            <div key={i}>
-              {new Date(p.created_at).toLocaleDateString('it-IT')} {'\u2014'} {p.tier} (
-              {p.credits_added} crediti, {'\u20AC'}
-              {(p.amount_cents / 100).toFixed(2)})
+            <div key={i} className="activity-row">
+              <span className="activity-date">{new Date(p.created_at).toLocaleDateString('it-IT')}</span>
+              <span className="activity-desc">{p.tier}</span>
+              <span className="activity-value">+{p.credits_added} cr &middot; {'\u20AC'}{(p.amount_cents / 100).toFixed(2)}</span>
             </div>
           ))}
-        </>
+        </div>
       )}
       {detail.usage.length > 0 && (
-        <>
-          <h4 style={{ marginTop: 12 }}>Uso crediti recente</h4>
+        <div className="user-card-section">
+          <h4>Uso Raccoin</h4>
           {detail.usage.slice(0, 10).map((u, i) => (
-            <div key={i}>
-              {new Date(u.created_at).toLocaleDateString('it-IT')} {'\u2014'} {u.action} (-
-              {u.credits_consumed})
+            <div key={i} className="activity-row">
+              <span className="activity-date">{new Date(u.created_at).toLocaleDateString('it-IT')}</span>
+              <span className="activity-desc">{u.action}</span>
+              <span className="activity-value">-{u.credits_consumed}</span>
             </div>
           ))}
-        </>
+        </div>
       )}
-    </>
+    </div>
   );
 }

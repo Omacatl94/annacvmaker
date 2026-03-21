@@ -10,7 +10,11 @@ LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "=== Deploy JobHacker → $SERVER ==="
 
-# Sync files (exclude dev/local stuff)
+# Step 1: Backup current .env BEFORE anything else
+echo "→ Backing up .env..."
+ssh "$SERVER" "test -f $REMOTE_DIR/.env && cp $REMOTE_DIR/.env /tmp/jobhacker-env-backup || true"
+
+# Step 2: Sync files (exclude dev/local stuff + .env)
 echo "→ Syncing files..."
 rsync -avz --delete \
   --exclude '.git' \
@@ -21,30 +25,32 @@ rsync -avz --delete \
   --exclude 'legacy' \
   --exclude 'docs' \
   --exclude 'dist' \
+  --exclude '.claude' \
+  --exclude '.playwright-mcp' \
+  --exclude '*.png' \
+  --exclude 'public' \
+  --exclude 'annacvmaker - first build *' \
   "$LOCAL_DIR/" "$SERVER:$REMOTE_DIR/"
 
-# Restore .env from backup or copy local
+# Step 3: Restore .env from backup (rsync --delete may have removed it)
 if ssh "$SERVER" "test -f /tmp/jobhacker-env-backup"; then
-  echo "→ Restoring .env from previous deploy..."
+  echo "→ Restoring .env from backup..."
   ssh "$SERVER" "cp /tmp/jobhacker-env-backup $REMOTE_DIR/.env"
-elif ssh "$SERVER" "test -f $REMOTE_DIR/.env"; then
-  echo "→ .env already on server (not overwritten)"
 else
-  echo "→ .env missing on server, copying local..."
+  echo "⚠ No .env backup found — copying local .env"
   scp "$LOCAL_DIR/.env" "$SERVER:$REMOTE_DIR/.env"
-  echo "⚠ Review $REMOTE_DIR/.env on server — update SESSION_SECRET for production!"
+  echo "⚠ Review $REMOTE_DIR/.env on server!"
 fi
 
-# Preserve old .env and stop old containers
-echo "→ Stopping old containers..."
-ssh "$SERVER" "cp /root/annacvmaker/.env /tmp/jobhacker-env-backup 2>/dev/null; cd /root/annacvmaker && docker compose down 2>/dev/null; rm -rf /root/annacvmaker"
-ssh "$SERVER" "docker rm -f cvmaker-app-1 cvmaker-db-1 2>/dev/null; docker system prune -f 2>/dev/null"
+# Step 4: Cleanup old containers/images
+echo "→ Cleaning up..."
+ssh "$SERVER" "docker system prune -f 2>/dev/null || true"
 
-# Build and restart
+# Step 5: Build and restart
 echo "→ Building and starting containers..."
 ssh "$SERVER" "cd $REMOTE_DIR && docker compose up -d --build"
 
-# Wait for health check
+# Step 6: Health check
 echo "→ Waiting for app to start..."
 sleep 15
 ssh "$SERVER" "curl -sf http://localhost:3000/api/health || echo 'HEALTH CHECK FAILED'"

@@ -20,17 +20,13 @@ function timeAgo(dateStr) {
 }
 
 const TYPE_ICONS = {
-  invite_claimed: { icon: 'user-plus', color: 'var(--color-success, #00E676)' },
-  invite_activated: { icon: 'check-circle', color: 'var(--color-success, #00E676)' },
-  batch_reload: { icon: 'gift', color: 'var(--color-accent, #448AFF)' },
-  referral_complete: { icon: 'trophy', color: '#FFD600' },
   credits_received: { icon: 'coins', color: 'var(--color-success, #00E676)' },
   credits_purchased: { icon: 'credit-card', color: '#448AFF' },
   feedback_rewarded: { icon: 'message-circle', color: 'var(--color-accent, #448AFF)' },
   welcome_activated: { icon: 'sparkles', color: '#FFD600' },
 };
 
-const GIFT_TYPES = new Set(['batch_reload', 'referral_complete']);
+const GIFT_TYPES = new Set();
 
 function getNotificationText(type, data) {
   const fn = t(`notifications.${type}`);

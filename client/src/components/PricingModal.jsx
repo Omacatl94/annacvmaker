@@ -57,18 +57,25 @@ export default function PricingModal({ onClose }) {
           <Icon name="x" size={20} />
         </button>
 
+        <img src="/img/mascot/raccoin.jpg" alt="Raccoin" className="pricing-raccoin-img" />
+
         {isOpenBeta ? (
           <>
             <h2 className="pricing-title">{t('beta.modalTitle')}</h2>
             <p className="pricing-subtitle">{t('beta.modalText')}</p>
-            <p className="pricing-guarantee">{t('beta.modalHint')}</p>
-            <p className="pricing-subtitle" style={{ marginTop: 12 }}>
-              Vuoi pi&ugrave; CV? Condividi il tuo link referral dalla sezione Account per ottenere
-              crediti extra.
-            </p>
-            <button className="btn-primary" onClick={onClose} style={{ marginTop: 16 }}>
-              OK
-            </button>
+
+            <div className="pricing-earn-section">
+              <h3 className="pricing-earn-title">Vuoi pi\u00F9 Raccoin?</h3>
+              <div className="pricing-earn-options">
+                <div className="pricing-earn-option">
+                  <Icon name="message-circle" size={20} />
+                  <div>
+                    <strong>Segnala bug o idee</strong>
+                    <p>Clicca il procione in basso a destra \u2014 i feedback utili vengono premiati</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </>
         ) : (
           <>

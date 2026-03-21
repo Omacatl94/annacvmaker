@@ -163,59 +163,43 @@ function KeywordTags({ keywords, extractedKeywords, checkboxRefs }) {
   );
 }
 
-// ── Breakdown Table ──
-function BreakdownTable({ scores }) {
-  const dimensions = [
-    { name: 'Keywords', weight: '40%', key: 'keywords' },
-    { name: 'Experience', weight: '25%', key: 'experience' },
-    { name: 'Education', weight: '15%', key: 'education' },
-    { name: 'Structure', weight: '10%', key: 'structure' },
-    { name: 'Soft Skills', weight: '10%', key: 'soft_skills' },
+// ── Compact Breakdown Bars ──
+function BreakdownBars({ scores }) {
+  const dims = [
+    { label: 'Keywords', key: 'keywords', weight: 40 },
+    { label: 'Esperienza', key: 'experience', weight: 25 },
+    { label: 'Formazione', key: 'education', weight: 15 },
+    { label: 'Struttura', key: 'structure', weight: 10 },
+    { label: 'Soft Skills', key: 'soft_skills', weight: 10 },
   ];
 
+  const avg = (key) => Math.round((scores.classic[key] + scores.smart[key]) / 2);
+
   return (
-    <table className="ats-breakdown">
-      <thead>
-        <tr>
-          {['Dimensione', 'Peso', 'Classic', 'Smart'].map((h) => (
-            <th key={h}>{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {dimensions.map((dim) => (
-          <tr key={dim.key}>
-            <td>{dim.name}</td>
-            <td>{dim.weight}</td>
-            <td>{scores.classic[dim.key]}</td>
-            <td>{scores.smart[dim.key]}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="ats-bars">
+      {dims.map((d) => {
+        const val = avg(d.key);
+        const color = val >= 80 ? 'var(--color-success)' : val >= 60 ? 'var(--color-warning)' : 'var(--color-error)';
+        return (
+          <div className="ats-bar-row" key={d.key}>
+            <span className="ats-bar-label">{d.label}</span>
+            <div className="ats-bar-track">
+              <div className="ats-bar-fill" style={{ width: `${val}%`, background: color }} />
+            </div>
+            <span className="ats-bar-value">{val}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-// ── Changelog ──
+// ── Changelog (compact) ──
 function Changelog({ changes }) {
+  if (!changes || changes.length === 0) return null;
   return (
-    <div className="ats-changelog">
-      <h4>Modifiche applicate</h4>
-      {(!changes || changes.length === 0) ? (
-        <p>Nessuna modifica applicata.</p>
-      ) : (
-        changes.map((change, i) => (
-          <div key={i} className="ats-changelog-item">
-            <div className="ats-changelog-field">{change.field || 'Campo'}</div>
-            <div className="ats-changelog-before">
-              <strong>Prima: </strong><span>{change.before || ''}</span>
-            </div>
-            <div className="ats-changelog-after">
-              <strong>Dopo: </strong><span>{change.after || ''}</span>
-            </div>
-          </div>
-        ))
-      )}
+    <div className="ats-changelog-compact">
+      <span className="ats-changelog-count">{changes.length} modifiche applicate</span>
     </div>
   );
 }
@@ -284,32 +268,21 @@ function ResultsView({ result, profile, jobDescription, extractedKeywords, onOpt
 
   return (
     <>
-      {/* Gauges */}
-      <div className="ats-gauges">
-        <Gauge score={currentResult.classic.total} label="Classic" id="gauge-classic" />
-        <Gauge score={currentResult.smart.total} label="Smart" id="gauge-smart" />
+      <div className="ats-score-header">
+        <div className="ats-gauges">
+          <Gauge score={currentResult.classic.total} label="Classic" id="gauge-classic" />
+          <Gauge score={currentResult.smart.total} label="Smart" id="gauge-smart" />
+        </div>
+        <GradeBadge score={avgScore} />
       </div>
 
-      <GradeBadge score={avgScore} />
-      <BreakdownTable scores={currentResult} />
+      <BreakdownBars scores={currentResult} />
+
       <KeywordTags
         keywords={currentResult.keywords}
         extractedKeywords={extractedKeywords}
         checkboxRefs={checkboxRefs}
       />
-
-      {currentResult.tip && (
-        <div className="ats-tip">
-          <strong>Tip: </strong>
-          <span>{currentResult.tip}</span>
-        </div>
-      )}
-
-      {extractedKeywords && (
-        <div className="ats-targeted-banner">
-          {t('ats.targetBanner')}
-        </div>
-      )}
 
       <button
         className="btn-primary ats-optimize-btn"

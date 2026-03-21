@@ -59,58 +59,48 @@ export default function ErrorLog() {
           onChange={handleSearchChange}
         />
       </div>
-      <div className="admin-table-wrap">
-        {loading ? (
-          'Caricamento...'
-        ) : errors.length === 0 ? (
-          "Nessun errore. Bene cosi'."
-        ) : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                {['Data', 'Level', 'Endpoint', 'Messaggio', 'Utente', 'Status'].map((col) => (
-                  <th key={col}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {errors.map((err, i) => (
-                <ErrorRow key={i} error={err} />
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {loading ? (
+        <div className="user-cards-loading">Caricamento...</div>
+      ) : errors.length === 0 ? (
+        <div className="user-cards-loading">Nessun errore. Bene cosi'.</div>
+      ) : (
+        <div className="user-cards">
+          {errors.map((err, i) => (
+            <ErrorCard key={i} error={err} />
+          ))}
+        </div>
+      )}
     </>
   );
 }
 
-function ErrorRow({ error: err }) {
+function ErrorCard({ error: err }) {
   const [expanded, setExpanded] = useState(false);
 
+  const date = new Date(err.created_at).toLocaleString('it-IT', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return (
-    <>
-      <tr
-        className={`error-row level-${err.level}`}
-        style={{ cursor: err.stack ? 'pointer' : 'default' }}
-        onClick={() => err.stack && setExpanded(!expanded)}
-      >
-        <td>{new Date(err.created_at).toLocaleString('it-IT')}</td>
-        <td>
-          <span className={`level-badge level-${err.level}`}>{err.level}</span>
-        </td>
-        <td>{err.endpoint || '-'}</td>
-        <td>{(err.message || '').substring(0, 100)}</td>
-        <td>{err.user_email || '-'}</td>
-        <td>{err.status_code || '-'}</td>
-      </tr>
+    <div
+      className={`error-card level-${err.level}`}
+      onClick={() => err.stack && setExpanded(!expanded)}
+      style={{ cursor: err.stack ? 'pointer' : 'default' }}
+    >
+      <div className="error-card-top">
+        <span className={`level-badge level-${err.level}`}>{err.level}</span>
+        {err.status_code && <span className="error-card-status">{err.status_code}</span>}
+        <span className="error-card-date">{date}</span>
+      </div>
+      {err.endpoint && <div className="error-card-endpoint">{err.endpoint}</div>}
+      <div className="error-card-message">{(err.message || '').substring(0, 200)}</div>
+      {err.user_email && <div className="error-card-user">{err.user_email}</div>}
       {expanded && err.stack && (
-        <tr className="stack-row">
-          <td colSpan={6}>
-            <pre className="stack-trace">{err.stack}</pre>
-          </td>
-        </tr>
+        <pre className="stack-trace">{err.stack}</pre>
       )}
-    </>
+    </div>
   );
 }

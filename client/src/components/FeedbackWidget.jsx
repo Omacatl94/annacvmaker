@@ -178,7 +178,7 @@ function FeedbackItem({ item }) {
       </div>
       <div className="feedback-item-msg">{item.message.substring(0, 120)}</div>
       {item.credits_awarded > 0 && (
-        <div className="feedback-item-reward">+{item.credits_awarded} crediti</div>
+        <div className="feedback-item-reward">+{item.credits_awarded} Raccoin</div>
       )}
       {item.admin_note && (
         <div className="feedback-item-note">{item.admin_note}</div>

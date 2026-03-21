@@ -115,15 +115,15 @@ const TERMS_SECTIONS = [
   {
     title: 'Prezzi e pagamenti',
     text: `- Il primo CV e' gratuito.
-- I pacchetti a pagamento sono pre-pagati e non rimborsabili una volta utilizzati i crediti.
-- I prezzi possono cambiare. I crediti gia' acquistati restano validi.
-- I crediti non hanno scadenza.`,
+- I pacchetti a pagamento sono pre-pagati e non rimborsabili una volta utilizzati i Raccoin.
+- I prezzi possono cambiare. I Raccoin gia' acquistati restano validi.
+- I Raccoin non hanno scadenza.`,
   },
   {
     title: 'Cancellazione',
     text: `- L'utente puo' cancellare il proprio account in qualsiasi momento dalla sezione Account.
 - Alla cancellazione, tutti i dati vengono eliminati irreversibilmente.
-- I crediti non utilizzati al momento della cancellazione non vengono rimborsati.`,
+- I Raccoin non utilizzati al momento della cancellazione non vengono rimborsati.`,
   },
   {
     title: 'Modifiche ai termini',

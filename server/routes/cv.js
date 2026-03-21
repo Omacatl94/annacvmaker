@@ -112,16 +112,29 @@ export default async function cvRoutes(app) {
 
     const result = await app.db.query(
       `INSERT INTO generated_cvs (profile_id, job_description, target_role, target_company, language, style, generated_data, ats_classic, ats_smart, status, notes, location)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'sent', '', $10) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'generated', '', $10) RETURNING *`,
       [profile_id, job_description, target_role, target_company, language, style,
        JSON.stringify(generated_data), ats_classic || null, ats_smart || null, location || null]
     );
     reply.code(201).send(result.rows[0]);
   });
 
+  app.delete('/generated/:id', { preHandler: registeredGuard }, async (req, reply) => {
+    const { id } = req.params;
+    const result = await app.db.query(
+      `DELETE FROM generated_cvs g
+       USING cv_profiles p
+       WHERE g.profile_id = p.id AND g.id = $1 AND p.user_id = $2
+       RETURNING g.id`,
+      [id, userId(req)]
+    );
+    if (!result.rows[0]) return reply.code(404).send({ error: 'Generated CV not found' });
+    reply.send({ ok: true });
+  });
+
   app.put('/generated/:id', { preHandler: registeredGuard }, async (req, reply) => {
     const { id } = req.params;
-    const { status, notes, ats_classic, ats_smart } = req.body;
+    const { status, notes, ats_classic, ats_smart, cover_letter_data } = req.body;
     const existing = await app.db.query(
       `SELECT g.id FROM generated_cvs g
        JOIN cv_profiles p ON g.profile_id = p.id
@@ -134,9 +147,10 @@ export default async function cvRoutes(app) {
        SET status = COALESCE($1, status),
            notes = COALESCE($2, notes),
            ats_classic = COALESCE($3, ats_classic),
-           ats_smart = COALESCE($4, ats_smart)
+           ats_smart = COALESCE($4, ats_smart),
+           cover_letter_data = COALESCE($6, cover_letter_data)
        WHERE id = $5 RETURNING *`,
-      [status, notes, ats_classic ?? null, ats_smart ?? null, id]
+      [status, notes, ats_classic ?? null, ats_smart ?? null, id, cover_letter_data ? JSON.stringify(cover_letter_data) : null]
     );
     reply.send(result.rows[0]);
   });

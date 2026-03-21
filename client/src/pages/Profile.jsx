@@ -176,7 +176,7 @@ export default function Profile() {
           <div className="upload-prominent card">
             <h3>Carica il tuo CV per iniziare</h3>
             <p className="upload-prominent-sub">
-              L'AI legge il tuo CV e pre-compila tutti i campi. Puoi anche compilare manualmente.
+              Leggo il tuo CV e pre-compilo tutti i campi. Puoi anche compilare manualmente.
             </p>
             <UploadZone onParsed={handleParsed} />
           </div>

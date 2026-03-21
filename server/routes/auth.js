@@ -2,9 +2,8 @@ import crypto from 'node:crypto';
 import { config } from '../config.js';
 import { sign } from '../services/jwt.js';
 import { google, linkedin } from '../services/oauth.js';
-import { generateInviteCodes } from '../services/invites.js';
 
-const COOKIE_NAME = '__Host-jh_token';
+const COOKIE_NAME = config.cookieSecure ? '__Host-jh_token' : 'jh_token';
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_AGE_S = 7 * 24 * 3600;
 
@@ -33,6 +32,23 @@ function clearAuthCookie(reply) {
 }
 
 export default async function authRoutes(app) {
+  // Dev-only: login as admin without OAuth
+  if (!config.cookieSecure) {
+    app.get('/dev-login', async (req, reply) => {
+      const email = config.adminEmails[0];
+      if (!email) return reply.code(500).send({ error: 'No admin email configured' });
+      let user = (await app.db.query('SELECT * FROM users WHERE LOWER(email) = $1', [email.toLowerCase()])).rows[0];
+      if (!user) {
+        user = (await app.db.query(
+          "INSERT INTO users (name, email, role, status) VALUES ('Admin Dev', $1, 'admin', 'active') RETURNING *",
+          [email]
+        )).rows[0];
+      }
+      setAuthCookie(reply, user);
+      reply.redirect('/');
+    });
+  }
+
   const STATE_COOKIE = 'jh_oauth_state';
   const STATE_MAX_AGE = 600; // 10 minutes
 
@@ -81,21 +97,18 @@ export default async function authRoutes(app) {
       }
       return { user, isNew: false };
     }
-    // New user: status depends on invite-only mode
-    const status = config.inviteOnly ? 'waitlist' : 'active';
-    const referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-    const result = await app.db.query(
-      'INSERT INTO users (email, name, google_id, linkedin_id, referral_code, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [email, name, googleId || null, linkedinId || null, referralCode, status]
+
+    // New user → waitlist, admin activates manually
+    await app.db.query(
+      `INSERT INTO waitlist (email, name, google_id, linkedin_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (email) DO UPDATE SET
+         name = COALESCE(EXCLUDED.name, waitlist.name),
+         google_id = COALESCE(EXCLUDED.google_id, waitlist.google_id),
+         linkedin_id = COALESCE(EXCLUDED.linkedin_id, waitlist.linkedin_id)`,
+      [email.toLowerCase(), name || null, googleId || null, linkedinId || null]
     );
-    const user = result.rows[0];
-
-    // If not invite-only (open registration), generate invite codes immediately
-    if (!config.inviteOnly && user.invite_batch === 0) {
-      await generateInviteCodes(app.db, user.id, 1).catch(() => {});
-    }
-
-    return { user, isNew: true };
+    return { user: null, isNew: true, waitlisted: true };
   }
 
   app.get('/google', {
@@ -114,7 +127,11 @@ export default async function authRoutes(app) {
       if (!code) throw new Error('No code received');
       const tokens = await google.getToken(code);
       const info = await google.getUserInfo(tokens.access_token);
-      const { user, isNew } = await findOrCreateUser({ email: info.email, name: info.name, googleId: info.id });
+      const { user, isNew, waitlisted } = await findOrCreateUser({ email: info.email, name: info.name, googleId: info.id });
+      if (waitlisted) {
+        auditLog(req, null, 'waitlist_google', { email: info.email });
+        return reply.redirect('/?waitlisted=1');
+      }
       auditLog(req, user.id, isNew ? 'register_google' : 'login_google');
       setAuthCookie(reply, user, false);
       return reply.redirect('/');
@@ -141,7 +158,11 @@ export default async function authRoutes(app) {
       if (!code) throw new Error('No code received');
       const tokens = await linkedin.getToken(code);
       const info = await linkedin.getUserInfo(tokens.access_token);
-      const { user, isNew } = await findOrCreateUser({ email: info.email, name: info.name, linkedinId: info.sub });
+      const { user, isNew, waitlisted } = await findOrCreateUser({ email: info.email, name: info.name, linkedinId: info.sub });
+      if (waitlisted) {
+        auditLog(req, null, 'waitlist_linkedin', { email: info.email });
+        return reply.redirect('/?waitlisted=1');
+      }
       auditLog(req, user.id, isNew ? 'register_linkedin' : 'login_linkedin');
       setAuthCookie(reply, user, false);
       return reply.redirect('/');
@@ -166,9 +187,6 @@ export default async function authRoutes(app) {
   app.post('/guest', {
     config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
   }, async (req, reply) => {
-    if (config.inviteOnly) {
-      return reply.code(403).send({ error: 'invite_required' });
-    }
     const guestId = crypto.randomUUID();
     const guestEmail = `guest-${guestId.slice(0, 8)}@anonymous`;
     const result = await app.db.query(
@@ -285,88 +303,6 @@ export default async function authRoutes(app) {
     reply.send({ ok: true });
   });
 
-  // ── Referral system ──
-
-  app.post('/referral-claim', async (req, reply) => {
-    const userId = req.user?.id;
-    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
-
-    const { code } = req.body;
-    if (!code) return reply.code(400).send({ error: 'code required' });
-
-    const referrer = await app.db.query('SELECT id FROM users WHERE referral_code = $1', [code]);
-    if (!referrer.rows[0]) return reply.code(404).send({ error: 'Codice non valido' });
-    const referrerId = referrer.rows[0].id;
-    if (referrerId === userId) return reply.code(400).send({ error: 'Non puoi usare il tuo codice' });
-
-    const existing = await app.db.query('SELECT id FROM referrals WHERE referred_id = $1', [userId]);
-    if (existing.rows[0]) return reply.code(409).send({ error: 'Hai già usato un codice referral' });
-
-    const count = await app.db.query('SELECT COUNT(*) as cnt FROM referrals WHERE referrer_id = $1', [referrerId]);
-    if (parseInt(count.rows[0].cnt) >= 20) return reply.code(400).send({ error: 'Il referrer ha raggiunto il limite' });
-
-    await app.db.query('UPDATE users SET credits = credits + 2 WHERE id = $1', [referrerId]);
-    await app.db.query(
-      'INSERT INTO referrals (referrer_id, referred_id, credits_awarded) VALUES ($1, $2, 2)',
-      [referrerId, userId]
-    );
-
-    reply.send({ ok: true });
-  });
-
-  app.get('/referral-stats', async (req, reply) => {
-    const userId = req.user?.id;
-    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
-
-    const user = await app.db.query('SELECT referral_code FROM users WHERE id = $1', [userId]);
-    const stats = await app.db.query(
-      'SELECT COUNT(*) as total, COALESCE(SUM(credits_awarded), 0) as credits FROM referrals WHERE referrer_id = $1',
-      [userId]
-    );
-
-    reply.send({
-      code: user.rows[0]?.referral_code || null,
-      referrals: parseInt(stats.rows[0]?.total || 0),
-      creditsEarned: parseInt(stats.rows[0]?.credits || 0),
-      maxReferrals: 20,
-    });
-  });
-
-  // ── Invite system ──
-
-  app.post('/claim-invite', async (req, reply) => {
-    // Note: this endpoint requires auth but NOT active status (waitlisted users can call it)
-    const userId = req.user?.id;
-    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
-
-    const { code } = req.body;
-    if (!code) return reply.code(400).send({ error: 'code required' });
-
-    const { claimInvite } = await import('../services/invites.js');
-    try {
-      const result = await claimInvite(app.db, userId, code);
-
-      // Re-issue JWT with updated status
-      const userRes = await app.db.query('SELECT * FROM users WHERE id = $1', [userId]);
-      if (userRes.rows[0]) {
-        setAuthCookie(reply, userRes.rows[0], false);
-      }
-
-      reply.send(result);
-    } catch (err) {
-      reply.code(err.statusCode || 500).send({ error: err.message });
-    }
-  });
-
-  app.get('/invite-stats', async (req, reply) => {
-    const userId = req.user?.id;
-    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
-
-    const { getInviteStats } = await import('../services/invites.js');
-    const stats = await getInviteStats(app.db, userId);
-    reply.send(stats);
-  });
-
   app.post('/waitlist', {
     config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
     schema: {
@@ -380,10 +316,21 @@ export default async function authRoutes(app) {
     },
   }, async (req, reply) => {
     const { email } = req.body;
+    const normalized = email.toLowerCase().trim();
+
+    // Check if already an active user
+    const existing = await app.db.query(
+      "SELECT id, status FROM users WHERE LOWER(email) = $1 AND email NOT LIKE '%@anonymous'",
+      [normalized]
+    );
+    if (existing.rows[0]?.status === 'active') {
+      return reply.send({ ok: true, alreadyActive: true });
+    }
+
     try {
       await app.db.query(
         'INSERT INTO waitlist (email) VALUES ($1) ON CONFLICT (email) DO NOTHING',
-        [email.toLowerCase().trim()]
+        [normalized]
       );
     } catch { /* ignore */ }
     reply.send({ ok: true });

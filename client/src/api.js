@@ -1,5 +1,9 @@
 const BASE = '/api';
 
+function refreshBalance() {
+  window.dispatchEvent(new Event('balance:refresh'));
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -49,12 +53,12 @@ export const api = {
 
   parseCV: (filePath) => request('/ai/parse-cv', { method: 'POST', body: { filePath } }),
   analyze: (data) => request('/ai/analyze', { method: 'POST', body: data }),
-  fitScore: (data) => request('/ai/fit-score', { method: 'POST', body: data }),
+  fitScore: (data) => request('/ai/fit-score', { method: 'POST', body: data }).then(r => { refreshBalance(); return r; }),
   extractKeywords: (data) => request('/ai/extract-keywords', { method: 'POST', body: data }),
-  generate: (data) => request('/ai/generate', { method: 'POST', body: data }),
+  generate: (data) => request('/ai/generate', { method: 'POST', body: data }).then(r => { refreshBalance(); return r; }),
   atsScore: (data) => request('/ai/ats-score', { method: 'POST', body: data }),
-  optimize: (data) => request('/ai/optimize', { method: 'POST', body: data }),
-  coverLetter: (data) => request('/ai/cover-letter', { method: 'POST', body: data }),
+  optimize: (data) => request('/ai/optimize', { method: 'POST', body: data }).then(r => { refreshBalance(); return r; }),
+  coverLetter: (data) => request('/ai/cover-letter', { method: 'POST', body: data }).then(r => { refreshBalance(); return r; }),
 
   exportPDF: async (html, filename) => {
     const res = await fetch(`${BASE}/cv/export-pdf`, {
@@ -73,19 +77,13 @@ export const api = {
   getGenerated: () => request('/cv/generated'),
   saveGenerated: (data) => request('/cv/generated', { method: 'POST', body: data }),
   updateGenerated: (id, data) => request(`/cv/generated/${id}`, { method: 'PUT', body: data }),
+  deleteGenerated: (id) => request(`/cv/generated/${id}`, { method: 'DELETE' }),
 
   updateMe: (data) => request('/auth/me', { method: 'PUT', body: data }),
   exportMyData: () => request('/auth/me/export'),
   deleteMe: () => request('/auth/me', { method: 'DELETE' }),
 
-  // Invite system
-  claimInvite: (code) => request('/auth/claim-invite', { method: 'POST', body: { code } }),
-  getInviteStats: () => request('/auth/invite-stats'),
   joinWaitlist: (email) => request('/auth/waitlist', { method: 'POST', body: { email } }),
-
-  // Legacy referral (no-op)
-  claimReferral: () => Promise.resolve({}),
-  getReferralStats: () => Promise.resolve({ code: null, referrals: 0, creditsEarned: 0, maxReferrals: 0 }),
 
   // Notifications
   getNotifications: () => request('/notifications'),
@@ -107,11 +105,8 @@ export const api = {
   adminAudit: (params) => request(`/admin/audit?${new URLSearchParams(params)}`),
   adminErrors: (params) => request(`/admin/errors?${new URLSearchParams(params)}`),
   adminWaitlist: (params) => request(`/admin/waitlist?${new URLSearchParams(params)}`),
-  adminInviteWaitlist: (id) => request(`/admin/waitlist/${id}/invite`, { method: 'POST', body: {} }),
   adminActivateWaitlist: (id) => request(`/admin/waitlist/${id}/activate`, { method: 'POST', body: {} }),
-  adminInviteStats: () => request('/admin/stats/invites'),
   adminActivateUser: (id) => request(`/admin/users/${id}/activate`, { method: 'PUT', body: {} }),
-  adminGenerateInvite: () => request('/admin/invite-generate', { method: 'POST', body: {} }),
 
   // Feedback
   submitFeedback: (data) => request('/feedback', { method: 'POST', body: data }),

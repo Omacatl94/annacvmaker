@@ -44,6 +44,11 @@ export default function WaitlistPanel() {
     loadWaitlist(search.trim(), newOffset);
   };
 
+  const handleRemoveEntry = (id) => {
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+    setTotal((t) => t - 1);
+  };
+
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
@@ -58,99 +63,91 @@ export default function WaitlistPanel() {
           onChange={handleSearchChange}
         />
       </div>
-      <div className="admin-table-wrap">
-        {loading ? (
-          'Caricamento...'
-        ) : entries.length === 0 ? (
-          'Nessuna email in waitlist.'
-        ) : (
-          <>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  {['Email', 'Data iscrizione', 'Stato', 'Azioni'].map((col) => (
-                    <th key={col}>{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry) => (
-                  <WaitlistRow
-                    key={entry.id}
-                    entry={entry}
-                    onInvited={(id, code) => {
-                      setEntries((prev) =>
-                        prev.map((e) =>
-                          e.id === id ? { ...e, invited: true, inviteCode: code } : e
-                        )
-                      );
-                    }}
-                  />
-                ))}
-              </tbody>
-            </table>
-            {totalPages > 1 && (
-              <div className="admin-pagination">
-                {offset > 0 && (
-                  <button className="btn-sm" onClick={() => handlePageChange(offset - PAGE_SIZE)}>
-                    {'\u2190'} Precedente
-                  </button>
-                )}
-                <span>
-                  Pagina {currentPage} di {totalPages} ({total} email)
-                </span>
-                {offset + PAGE_SIZE < total && (
-                  <button className="btn-sm" onClick={() => handlePageChange(offset + PAGE_SIZE)}>
-                    Successiva {'\u2192'}
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {loading ? (
+        <div className="user-cards-loading">Caricamento...</div>
+      ) : entries.length === 0 ? (
+        <div className="user-cards-loading">Nessuna email in waitlist.</div>
+      ) : (
+        <>
+          <div className="waitlist-list card">
+            {entries.map((entry) => (
+              <WaitlistCard
+                key={entry.id}
+                entry={entry}
+                onActivated={handleRemoveEntry}
+              />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="admin-pagination">
+              {offset > 0 && (
+                <button className="btn-sm" onClick={() => handlePageChange(offset - PAGE_SIZE)}>
+                  {'\u2190'} Prec
+                </button>
+              )}
+              <span>
+                {currentPage}/{totalPages} ({total})
+              </span>
+              {offset + PAGE_SIZE < total && (
+                <button className="btn-sm" onClick={() => handlePageChange(offset + PAGE_SIZE)}>
+                  Succ {'\u2192'}
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }
 
-function WaitlistRow({ entry, onInvited }) {
-  const [inviting, setInviting] = useState(false);
+function WaitlistCard({ entry, onActivated }) {
+  const [activating, setActivating] = useState(false);
 
-  const handleInvite = async () => {
-    setInviting(true);
+  const date = new Date(entry.created_at).toLocaleDateString('it-IT', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+  const source = entry.google_id ? 'Google' : entry.linkedin_id ? 'LinkedIn' : 'Form';
+
+  const handleActivate = async () => {
+    if (!window.confirm(`Attivare ${entry.email}? Verra' creato l'account con crediti di benvenuto.`)) return;
+    setActivating(true);
     try {
-      const res = await api.adminInviteWaitlist(entry.id);
-      onInvited(entry.id, res.code);
+      await api.adminActivateWaitlist(entry.id);
+      onActivated(entry.id);
     } catch (err) {
       alert('Errore: ' + err.message);
-      setInviting(false);
+      setActivating(false);
     }
   };
 
   return (
-    <tr>
-      <td>{entry.email}</td>
-      <td>{new Date(entry.created_at).toLocaleString('it-IT')}</td>
-      <td>
-        <span className={`admin-badge ${entry.invited ? 'active' : 'waitlist'}`}>
-          {entry.invited ? 'Invitato' : 'In attesa'}
-        </span>
-      </td>
-      <td>
-        {!entry.invited ? (
-          <button
-            className="btn-sm btn-primary"
-            disabled={inviting}
-            onClick={handleInvite}
-          >
-            {inviting ? '...' : 'Invia invito'}
-          </button>
-        ) : entry.inviteCode ? (
-          <code style={{ fontSize: '0.85em' }}>{entry.inviteCode}</code>
-        ) : (
-          '\u2014'
-        )}
-      </td>
-    </tr>
+    <div className="waitlist-row">
+      <div className="waitlist-row-info">
+        <div className="waitlist-row-top">
+          <span className="waitlist-row-name">{entry.name || entry.email.split('@')[0]}</span>
+          {source !== 'Form' && (
+            <span className="admin-badge active" style={{ fontSize: 10, padding: '1px 5px' }}>
+              {source}
+            </span>
+          )}
+        </div>
+        <div className="waitlist-row-meta">
+          <span>{entry.email}</span>
+          <span className="waitlist-row-dot">&middot;</span>
+          <span>{date}</span>
+        </div>
+      </div>
+      <button
+        className="btn-sm btn-primary"
+        disabled={activating}
+        onClick={handleActivate}
+      >
+        {activating ? '...' : 'Attiva'}
+      </button>
+    </div>
   );
 }

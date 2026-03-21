@@ -1,10 +1,6 @@
 // server/services/notifications.js
 
 const VALID_TYPES = new Set([
-  'invite_claimed',
-  'invite_activated',
-  'batch_reload',
-  'referral_complete',
   'credits_received',
   'credits_purchased',
   'feedback_rewarded',

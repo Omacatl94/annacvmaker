@@ -59,7 +59,6 @@ export const config = {
   },
   openBeta: env('OPEN_BETA', 'false') === 'true',
   openBetaDailyLimit: parseInt(env('OPEN_BETA_DAILY_LIMIT', '2')),
-  inviteOnly: env('INVITE_ONLY', 'true') === 'true',
   adminEmails: env('ADMIN_EMAILS', '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean),
   upload: {
     maxFileSize: 10 * 1024 * 1024, // 10MB

@@ -5,9 +5,6 @@ export default function Dashboard() {
   const [overview, setOverview] = useState(null);
   const [orBalance, setOrBalance] = useState(null);
   const [error, setError] = useState(null);
-  const [inviteResult, setInviteResult] = useState(null);
-  const [inviteLoading, setInviteLoading] = useState(false);
-
   useEffect(() => {
     Promise.all([
       api.adminOverview(),
@@ -20,18 +17,6 @@ export default function Dashboard() {
       .catch((err) => setError(err.message));
   }, []);
 
-  const handleGenerateInvite = async () => {
-    setInviteLoading(true);
-    try {
-      const { code, link } = await api.adminGenerateInvite();
-      setInviteResult({ code, link });
-    } catch {
-      setInviteResult({ error: true });
-      setTimeout(() => setInviteResult(null), 2000);
-    }
-    setInviteLoading(false);
-  };
-
   if (error) return <div>Errore: {error}</div>;
   if (!overview) return <div>Caricamento...</div>;
 
@@ -39,7 +24,7 @@ export default function Dashboard() {
     { label: 'Utenti registrati', value: overview.users.total, sub: `+${overview.users.last7d} (7gg) / +${overview.users.last30d} (30gg)` },
     { label: 'Revenue totale', value: '\u20AC' + (overview.revenue.totalCents / 100).toFixed(2), sub: `\u20AC${(overview.revenue.last30dCents / 100).toFixed(2)} ultimi 30gg` },
     { label: 'CV generati', value: overview.cvs.total, sub: `${overview.cvs.last30d} ultimi 30gg` },
-    { label: 'Cover letter', value: overview.coverLetters, sub: `${overview.creditsUsed} crediti usati totali` },
+    { label: 'Cover letter', value: overview.coverLetters, sub: `${overview.creditsUsed} Raccoin usati totali` },
   ];
 
   if (orBalance) {
@@ -56,22 +41,6 @@ export default function Dashboard() {
   return (
     <>
       <KPIGrid kpis={kpis} />
-
-      <div className="admin-actions-row">
-        <button
-          className="btn-primary btn-sm"
-          disabled={inviteLoading}
-          onClick={handleGenerateInvite}
-        >
-          {inviteLoading ? '...' : 'Genera invito'}
-        </button>
-        {inviteResult && !inviteResult.error && (
-          <InviteResultDisplay code={inviteResult.code} link={inviteResult.link} />
-        )}
-        {inviteResult?.error && <span>Errore!</span>}
-      </div>
-
-      <InviteStats />
       <TimeseriesChart metric="registrations" title="Registrazioni" />
       <TimeseriesChart metric="revenue" title="Revenue (centesimi)" />
       <CohortTable />
@@ -89,88 +58,6 @@ function KPIGrid({ kpis }) {
           {kpi.sub && <div className="kpi-sub">{kpi.sub}</div>}
         </div>
       ))}
-    </div>
-  );
-}
-
-function InviteResultDisplay({ code, link }) {
-  const [copied, setCopied] = useState(false);
-
-  return (
-    <div className="admin-invite-result">
-      <code>{code}</code>
-      <a href={link} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8 }}>
-        {link}
-      </a>
-      <button
-        className="btn-secondary btn-sm"
-        style={{ marginLeft: 8 }}
-        onClick={() => {
-          navigator.clipboard.writeText(link).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          });
-        }}
-      >
-        {copied ? 'Copiato!' : 'Copia link'}
-      </button>
-    </div>
-  );
-}
-
-function InviteStats() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    api.adminInviteStats().then(setData).catch(() => setError(true));
-  }, []);
-
-  if (error) return <div className="admin-chart-section"><h3>Viral Loop</h3><p className="kpi-sub">Errore nel caricamento invite stats.</p></div>;
-  if (!data) return null;
-
-  const inviteKpis = [
-    { label: 'Codici totali', value: data.codes.total, sub: `${data.codes.available} disponibili` },
-    { label: 'Claimed', value: data.codes.claimed, sub: `${data.rates.claimRate}% claim rate` },
-    { label: 'Attivati', value: data.codes.activated, sub: `${data.rates.activationRate}% activation rate` },
-    { label: 'k (viral coeff)', value: data.rates.k, sub: data.rates.k >= 1 ? 'Crescita virale!' : 'Sotto soglia virale', warn: data.rates.k < 0.5 },
-    { label: 'Tempo medio attivazione', value: data.avgActivationHours ? `${data.avgActivationHours}h` : '\u2014', sub: 'dalla claim al primo CV' },
-    { label: 'Batch 2 sbloccati', value: data.users.batch2, sub: 'utenti con 3/3 attivati' },
-    { label: 'Waitlist', value: data.waitlist.total, sub: `${data.waitlist.invited} invitati` },
-    { label: 'Utenti attivi', value: data.users.active, sub: `${data.users.waitlist} in attesa` },
-  ];
-
-  return (
-    <div className="admin-chart-section">
-      <h3>Viral Loop</h3>
-      <KPIGrid kpis={inviteKpis} />
-      {data.recentClaims && data.recentClaims.length > 0 && (
-        <>
-          <h4 style={{ marginTop: 16 }}>Ultimi inviti usati</h4>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                {['Codice', 'Invitante', 'Invitato', 'Claimed', 'Attivato'].map((col) => (
-                  <th key={col}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.recentClaims.map((claim, i) => (
-                <tr key={i}>
-                  <td><code>{claim.code}</code></td>
-                  <td>{claim.owner_name || claim.owner_email || 'Admin'}</td>
-                  <td>{claim.invitee_name || claim.invitee_email || '\u2014'}</td>
-                  <td>{claim.claimed_at ? new Date(claim.claimed_at).toLocaleDateString('it-IT') : '\u2014'}</td>
-                  <td style={claim.activated ? { color: 'var(--color-accent)' } : undefined}>
-                    {claim.activated ? '\u2713' : '\u2014'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
     </div>
   );
 }

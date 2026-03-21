@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { t } from '../strings';
@@ -6,31 +6,74 @@ import Icon from '../components/Icon';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const loginRef = useRef(null);
-  const hasInvite = !!localStorage.getItem('jh_invite_code');
+  const waitlistRef = useRef(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [waitlistedBanner, setWaitlistedBanner] = useState(false);
 
-  const scrollToLogin = useCallback(() => {
-    loginRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Handle ?waitlisted=1 redirect from OAuth (user not yet active)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('waitlisted') === '1') {
+      setWaitlistedBanner(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
+
+  const scrollToWaitlist = useCallback(() => {
+    waitlistRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
   return (
     <div className="landing-page">
-      <Nav scrollToLogin={scrollToLogin} />
-      <Hero hasInvite={hasInvite} scrollToLogin={scrollToLogin} />
+      {waitlistedBanner && (
+        <div className="waitlisted-banner">
+          <p>{t('landing.waitlistedBanner')}</p>
+          <button onClick={() => setWaitlistedBanner(false)} aria-label="Chiudi">&times;</button>
+        </div>
+      )}
+      <Nav scrollToWaitlist={scrollToWaitlist} onLoginClick={() => setLoginOpen(true)} />
+      <Hero scrollToWaitlist={scrollToWaitlist} />
       <ProblemSection />
       <ComparisonSection />
       <HowItWorks />
       <Features />
       <Metrics />
       <PricingTeaser />
-      <FinalCTA hasInvite={hasInvite} scrollToLogin={scrollToLogin} />
-      <LoginSection ref={loginRef} hasInvite={hasInvite} />
+      <FinalCTA scrollToWaitlist={scrollToWaitlist} />
+      <WaitlistSection ref={waitlistRef} />
       <Footer navigate={navigate} />
+      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
     </div>
   );
 }
 
-function Nav({ scrollToLogin }) {
+// ── Login Modal (blur backdrop) ──
+
+function LoginModal({ onClose }) {
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="login-modal-overlay" onClick={onClose}>
+      <div className="login-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="login-modal-close" onClick={onClose} aria-label="Chiudi">
+          <Icon name="x" size={20} />
+        </button>
+        <img src="/img/mascot/avatar.webp" alt="" className="login-modal-avatar" />
+        <h2>{t('landing.loginLink')}</h2>
+        <p className="login-subtitle">{t('landing.loginModalSubtitle')}</p>
+        <OAuthButtons />
+      </div>
+    </div>
+  );
+}
+
+// ── Nav ──
+
+function Nav({ scrollToWaitlist, onLoginClick }) {
   const [theme, setTheme] = useState(
     () => document.documentElement.getAttribute('data-theme') || 'dark'
   );
@@ -52,22 +95,17 @@ function Nav({ scrollToLogin }) {
         <button className="theme-toggle" title={t('common.themeToggle')} aria-label={t('common.themeToggle')} onClick={toggleTheme}>
           <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
         </button>
-        <a
-          href="#login"
-          className="landing-login-link"
-          onClick={(e) => {
-            e.preventDefault();
-            scrollToLogin();
-          }}
-        >
+        <button className="landing-login-link" onClick={onLoginClick}>
           {t('landing.loginLink')}
-        </a>
+        </button>
       </div>
     </nav>
   );
 }
 
-function Hero({ hasInvite, scrollToLogin }) {
+// ── Hero ──
+
+function Hero({ scrollToWaitlist }) {
   return (
     <section className="landing-hero">
       <div className="landing-hero-content">
@@ -79,14 +117,10 @@ function Hero({ hasInvite, scrollToLogin }) {
         </h1>
         <p className="landing-subtitle">{t('landing.subtitle')}</p>
         <div className="landing-hero-cta">
-          <button className="btn-primary btn-lg" onClick={scrollToLogin}>
-            {hasInvite ? t('landing.inviteCTA') : t('landing.waitlistTitle')}
+          <button className="btn-primary btn-lg" onClick={scrollToWaitlist}>
+            {t('landing.waitlistTitle')}
           </button>
-          {hasInvite ? (
-            <span className="landing-invite-badge">{t('landing.inviteBadge')}</span>
-          ) : (
-            <span className="landing-try-hint">{t('landing.tryHint')}</span>
-          )}
+          <span className="landing-try-hint">{t('landing.tryHint')}</span>
         </div>
       </div>
       <div className="landing-hero-visual">
@@ -100,6 +134,8 @@ function Hero({ hasInvite, scrollToLogin }) {
     </section>
   );
 }
+
+// ── Sections ──
 
 function ProblemSection() {
   const problems = [
@@ -249,101 +285,85 @@ function PricingTeaser() {
   );
 }
 
-function FinalCTA({ hasInvite, scrollToLogin }) {
+// ── Final CTA ──
+
+function FinalCTA({ scrollToWaitlist }) {
   return (
     <section className="landing-section landing-final-cta">
       <h2 className="landing-h2">{t('landing.ctaTitle')}</h2>
       <p className="landing-section-subtitle">{t('landing.ctaText')}</p>
-      <button className="btn-primary btn-lg" onClick={scrollToLogin}>
-        {hasInvite ? t('landing.inviteCTA') : t('landing.waitlistTitle')}
+      <button className="btn-primary btn-lg" onClick={scrollToWaitlist}>
+        {t('landing.waitlistTitle')}
       </button>
     </section>
   );
 }
 
-import { forwardRef } from 'react';
+// ── Waitlist Section (bottom of page, email only) ──
 
-const LoginSection = forwardRef(function LoginSection({ hasInvite }, ref) {
-  const [showOAuth, setShowOAuth] = useState(false);
+const WaitlistSection = forwardRef(function WaitlistSection(props, ref) {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [alreadyActive, setAlreadyActive] = useState(false);
 
   const handleWaitlist = async () => {
     const trimmed = email.trim();
     if (!trimmed) return;
     setSubmitting(true);
     try {
-      await api.joinWaitlist(trimmed);
-      setDone(true);
+      const res = await api.joinWaitlist(trimmed);
+      if (res.alreadyActive) {
+        setAlreadyActive(true);
+      } else {
+        setDone(true);
+      }
     } catch {
       setSubmitting(false);
     }
   };
 
   return (
-    <section className="landing-section landing-login-section" ref={ref}>
-      <div className="login-card">
-        {hasInvite ? (
-          <>
-            <h2>{t('landing.inviteCTA')}</h2>
-            <p className="login-subtitle">
-              {t('landing.inviteBadge')}. {t('landing.loginLink')} per attivarlo.
-            </p>
-            <OAuthButtons />
-          </>
+    <section className="landing-section landing-waitlist-section" ref={ref}>
+      <div className="waitlist-card">
+        <h2>{t('landing.waitlistTitle')}</h2>
+        <p className="login-subtitle">{t('landing.waitlistSubtitle')}</p>
+
+        {alreadyActive ? (
+          <div className="waitlist-already-active">
+            <img src="/img/mascot/avatar.webp" alt="" className="waitlist-raccoon" />
+            <p>{t('landing.waitlistAlreadyActive')}</p>
+          </div>
+        ) : done ? (
+          <div className="waitlist-done-msg">
+            <Icon name="check-circle" size={24} />
+            <p>{t('landing.waitlistDone')}</p>
+          </div>
         ) : (
-          <>
-            <h2>{t('landing.waitlistTitle')}</h2>
-            <p className="login-subtitle">
-              {t('beta.landingTitle')}. {t('landing.waitlistPlaceholder')} e ti avviseremo.
-            </p>
-            {!showOAuth ? (
-              <>
-                <div className="waitlist-inline-form">
-                  {done ? (
-                    <p className="waitlist-done">{t('landing.waitlistDone')}</p>
-                  ) : (
-                    <>
-                      <input
-                        type="email"
-                        placeholder={t('landing.waitlistPlaceholder')}
-                        className="waitlist-input"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                      <button
-                        className="btn-secondary"
-                        disabled={submitting}
-                        onClick={handleWaitlist}
-                      >
-                        {t('landing.waitlistBtn')}
-                      </button>
-                    </>
-                  )}
-                </div>
-                <div className="landing-login-toggle">
-                  {'Hai gi\u00E0 un codice invito? '}
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowOAuth(true);
-                    }}
-                  >
-                    Accedi qui
-                  </a>
-                </div>
-              </>
-            ) : (
-              <OAuthButtons />
-            )}
-          </>
+          <div className="waitlist-inline-form">
+            <input
+              type="email"
+              placeholder={t('landing.waitlistPlaceholder')}
+              className="waitlist-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleWaitlist()}
+            />
+            <button
+              className="btn-primary"
+              disabled={submitting}
+              onClick={handleWaitlist}
+            >
+              {submitting ? '...' : t('landing.waitlistBtn')}
+            </button>
+          </div>
         )}
       </div>
     </section>
   );
 });
+
+// ── OAuth Buttons ──
 
 function OAuthButtons() {
   return (
@@ -366,6 +386,8 @@ function OAuthButtons() {
     </div>
   );
 }
+
+// ── Footer ──
 
 function Footer({ navigate }) {
   return (

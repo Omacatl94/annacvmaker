@@ -1,8 +1,9 @@
 import { adminGuard } from '../middleware/auth-guard.js';
 import { openrouter } from '../services/openrouter.js';
-import { generateInviteCodes, WELCOME_CREDITS, BATCH_1_SIZE } from '../services/invites.js';
 import { sendWelcomeEmail } from '../services/email.js';
 import { notify } from '../services/notifications.js';
+
+const WELCOME_CREDITS = 2;
 
 export default async function adminRoutes(app) {
   app.addHook('preHandler', adminGuard);
@@ -27,60 +28,6 @@ export default async function adminRoutes(app) {
       cvs: { total: +cvs.rows[0].n, last30d: +cvs30d.rows[0].n },
       coverLetters: +coverLetters.rows[0].n,
       creditsUsed: +creditsUsed.rows[0].n,
-    });
-  });
-
-  // ── Invite Stats ──
-  app.get('/stats/invites', async (req, reply) => {
-    const [
-      totalCodes, claimedCodes, activatedCodes,
-      waitlistSize, waitlistInvited,
-      activeUsers, waitlistUsers,
-      avgActivation, batch2Users,
-      recentInvites
-    ] = await Promise.all([
-      app.db.query('SELECT COUNT(*) as n FROM invite_codes'),
-      app.db.query('SELECT COUNT(*) as n FROM invite_codes WHERE claimed_by IS NOT NULL'),
-      app.db.query('SELECT COUNT(*) as n FROM invite_codes WHERE activated = true'),
-      app.db.query('SELECT COUNT(*) as n FROM waitlist'),
-      app.db.query('SELECT COUNT(*) as n FROM waitlist WHERE invited_at IS NOT NULL'),
-      app.db.query(`SELECT COUNT(*) as n FROM users WHERE status = 'active' AND email NOT LIKE '%@anonymous'`),
-      app.db.query(`SELECT COUNT(*) as n FROM users WHERE status = 'waitlist'`),
-      app.db.query(`SELECT AVG(EXTRACT(EPOCH FROM (ic.activated_at - ic.claimed_at)) / 3600) as hours FROM invite_codes ic WHERE ic.activated = true AND ic.claimed_at IS NOT NULL`),
-      app.db.query('SELECT COUNT(*) as n FROM users WHERE invite_batch = 2'),
-      // Recent invite activity
-      app.db.query(`
-        SELECT ic.code, ic.claimed_at, ic.activated, ic.activated_at,
-               owner.name as owner_name, owner.email as owner_email,
-               invitee.name as invitee_name, invitee.email as invitee_email
-        FROM invite_codes ic
-        LEFT JOIN users owner ON ic.owner_id = owner.id
-        LEFT JOIN users invitee ON ic.claimed_by = invitee.id
-        WHERE ic.claimed_by IS NOT NULL
-        ORDER BY ic.claimed_at DESC
-        LIMIT 20
-      `),
-    ]);
-
-    const total = +totalCodes.rows[0].n;
-    const claimed = +claimedCodes.rows[0].n;
-    const activated = +activatedCodes.rows[0].n;
-
-    // k = activated / activeUsers (how many new active users per existing active user)
-    const active = +activeUsers.rows[0].n;
-    const k = active > 0 ? +(activated / active).toFixed(2) : 0;
-
-    reply.send({
-      codes: { total, claimed, activated, available: total - claimed },
-      rates: {
-        claimRate: total > 0 ? +(claimed / total * 100).toFixed(1) : 0,
-        activationRate: claimed > 0 ? +(activated / claimed * 100).toFixed(1) : 0,
-        k,
-      },
-      waitlist: { total: +waitlistSize.rows[0].n, invited: +waitlistInvited.rows[0].n },
-      users: { active, waitlist: +waitlistUsers.rows[0].n, batch2: +batch2Users.rows[0].n },
-      avgActivationHours: avgActivation.rows[0].hours ? +Number(avgActivation.rows[0].hours).toFixed(1) : null,
-      recentClaims: recentInvites.rows,
     });
   });
 
@@ -249,9 +196,6 @@ export default async function adminRoutes(app) {
       ['active', WELCOME_CREDITS, id]
     );
 
-    // Generate invite codes (batch 1)
-    await generateInviteCodes(app.db, id, 1);
-
     // Audit
     await app.db.query(
       `INSERT INTO audit_logs (user_id, action, ip, user_agent, metadata)
@@ -368,9 +312,11 @@ export default async function adminRoutes(app) {
     if (existing.rows[0]) {
       // Just activate the existing user
       await app.db.query('UPDATE users SET status = $1, credits = credits + $2 WHERE id = $3', ['active', WELCOME_CREDITS, existing.rows[0].id]);
-      await generateInviteCodes(app.db, existing.rows[0].id, 1);
       await app.db.query('DELETE FROM waitlist WHERE id = $1', [id]);
       notify(app.db, existing.rows[0].id, 'welcome_activated', { credits: WELCOME_CREDITS }).catch(() => {});
+      sendWelcomeEmail(entry.email, entry.name).catch(err => {
+        req.log.error({ err, email: entry.email }, 'Failed to send welcome email');
+      });
       return reply.send({ ok: true, userId: existing.rows[0].id });
     }
 
@@ -382,9 +328,6 @@ export default async function adminRoutes(app) {
       [entry.email, entry.name || null, entry.google_id || null, entry.linkedin_id || null, referralCode, WELCOME_CREDITS]
     );
     const user = userRes.rows[0];
-
-    // Generate invite codes (batch 1)
-    await generateInviteCodes(app.db, user.id, 1);
 
     // Remove from waitlist
     await app.db.query('DELETE FROM waitlist WHERE id = $1', [id]);
@@ -408,41 +351,4 @@ export default async function adminRoutes(app) {
     reply.send({ ok: true, userId: user.id });
   });
 
-  app.post('/waitlist/:id/invite', async (req, reply) => {
-    const { id } = req.params;
-
-    const wl = await app.db.query('SELECT id, email, invited_at FROM waitlist WHERE id = $1', [id]);
-    if (!wl.rows[0]) return reply.code(404).send({ error: 'Waitlist entry not found' });
-    if (wl.rows[0].invited_at) return reply.code(409).send({ error: 'Already invited' });
-
-    const { generateAdminInvite } = await import('../services/invites.js');
-    const code = await generateAdminInvite(app.db);
-
-    await app.db.query('UPDATE waitlist SET invited_at = NOW() WHERE id = $1', [id]);
-
-    await app.db.query(
-      `INSERT INTO audit_logs (user_id, action, ip, user_agent, metadata)
-       VALUES ($1, 'admin_waitlist_invite', $2, $3, $4)`,
-      [req.user.id, req.ip, req.headers['user-agent']?.substring(0, 500) || null,
-       JSON.stringify({ waitlistId: id, email: wl.rows[0].email, code })]
-    );
-
-    reply.send({ ok: true, code, email: wl.rows[0].email });
-  });
-
-  // Generate a standalone invite code (no waitlist entry needed)
-  app.post('/invite-generate', async (req, reply) => {
-    const { generateAdminInvite } = await import('../services/invites.js');
-    const code = await generateAdminInvite(app.db);
-
-    await app.db.query(
-      `INSERT INTO audit_logs (user_id, action, ip, user_agent, metadata)
-       VALUES ($1, 'admin_invite_generate', $2, $3, $4)`,
-      [req.user.id, req.ip, req.headers['user-agent']?.substring(0, 500) || null,
-       JSON.stringify({ code })]
-    );
-
-    const link = `https://jobhacker.it/?invite=${code}`;
-    reply.send({ ok: true, code, link });
-  });
 }

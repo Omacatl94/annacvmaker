@@ -47,7 +47,7 @@ const SCREENS = [
       "Estrae le keyword dall'annuncio.",
       'Genera il CV con le keyword incorporate.',
       "Verifica il punteggio ATS prima dell'invio.",
-      "Tu controlli tutto \u2014 l'AI non inventa niente.",
+      "Tu controlli tutto \u2014 il procione non inventa niente.",
     ],
     cta: true,
   },

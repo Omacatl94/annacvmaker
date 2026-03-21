@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ThemeProvider } from './hooks/useTheme';
 import Header from './components/Header';
+import FeedbackWidget from './components/FeedbackWidget';
 import Landing from './pages/Landing';
 import Waitlist from './pages/Waitlist';
 import Profile from './pages/Profile';
@@ -51,6 +52,7 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
+      {!user.guest && <FeedbackWidget />}
     </>
   );
 }
