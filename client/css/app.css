@@ -3835,7 +3835,37 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   line-height: 1.4;
 }
 
-/* Credit badge in header */
+/* Credit badges in header */
+.credit-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.daily-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-accent);
+  background: rgba(0, 230, 118, 0.10);
+  border: 1px solid rgba(0, 230, 118, 0.25);
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.daily-badge svg { color: var(--color-accent); }
+.daily-badge.empty {
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--color-border);
+}
+.daily-badge.empty svg { color: var(--color-text-muted); }
+[data-theme="light"] .daily-badge { background: rgba(0, 200, 83, 0.08); border-color: rgba(0, 200, 83, 0.25); color: #2E7D32; }
+[data-theme="light"] .daily-badge svg { color: #2E7D32; }
+[data-theme="light"] .daily-badge.empty { color: var(--color-text-muted); background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); }
+
 .credit-badge {
   display: inline-flex;
   align-items: center;

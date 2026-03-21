@@ -22,14 +22,12 @@ export default function Header() {
   const fetchBalance = useCallback(() => {
     if (!user || user.guest) return;
     api.getBalance().then(data => {
-      const newTotal = data.openBeta
-        ? Math.max(0, data.dailyLimit - data.dailyUsed) + data.credits
-        : data.credits;
-      if (prevTotal.current !== null && newTotal !== prevTotal.current) {
+      const newCredits = data.credits;
+      if (prevTotal.current !== null && newCredits !== prevTotal.current) {
         setBump(true);
         setTimeout(() => setBump(false), 600);
       }
-      prevTotal.current = newTotal;
+      prevTotal.current = newCredits;
       setBalance(data);
     }).catch(() => {});
   }, [user]);
@@ -51,23 +49,11 @@ export default function Header() {
     { path: '/candidature', label: 'Candidature', guestOk: false },
   ];
 
-  function renderCreditBadge() {
-    if (!balance) return '...';
-    if (balance.openBeta) {
-      return Math.max(0, balance.dailyLimit - balance.dailyUsed) + balance.credits;
-    }
-    return balance.credits;
-  }
+  const dailyRemaining = balance?.openBeta
+    ? Math.max(0, balance.dailyLimit - balance.dailyUsed)
+    : null;
 
-  const creditClass = () => {
-    if (!balance) return '';
-    const total = balance.openBeta
-      ? Math.max(0, balance.dailyLimit - balance.dailyUsed) + balance.credits
-      : balance.credits;
-    if (total <= 0) return 'empty';
-    if (total <= (balance.openBeta ? 1 : 2)) return 'low';
-    return '';
-  };
+  const bonusCredits = balance?.credits ?? 0;
 
   return (
     <header className="app-header">
@@ -99,14 +85,24 @@ export default function Header() {
         </button>
 
         {user && !user.guest && (
-          <button
-            className={`credit-badge ${creditClass()}${bump ? ' credit-bump' : ''}`}
-            title="Raccoin rimasti"
-            aria-label="Raccoin rimasti"
-            onClick={() => setShowPricing(true)}
-          >
-            <Icon name="coins" size={14} /> {renderCreditBadge()}
-          </button>
+          <div className="credit-badges">
+            {dailyRemaining !== null && (
+              <span
+                className={`daily-badge${dailyRemaining <= 0 ? ' empty' : ''}`}
+                title={`${dailyRemaining} CV gratis rimasti oggi`}
+              >
+                <Icon name="zap" size={13} /> {dailyRemaining}
+              </span>
+            )}
+            <button
+              className={`credit-badge${bonusCredits <= 0 ? ' empty' : ''}${bump ? ' credit-bump' : ''}`}
+              title="Raccoin bonus accumulati"
+              aria-label="Raccoin bonus"
+              onClick={() => setShowPricing(true)}
+            >
+              <Icon name="coins" size={14} /> {balance ? bonusCredits : '...'}
+            </button>
+          </div>
         )}
 
         {user && !user.guest && <NotificationBell />}
