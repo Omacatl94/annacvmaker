@@ -83,6 +83,7 @@ export const api = {
   exportMyData: () => request('/auth/me/export'),
   deleteMe: () => request('/auth/me', { method: 'DELETE' }),
 
+  checkEmail: (email) => request('/auth/check-email', { method: 'POST', body: { email } }),
   joinWaitlist: (email) => request('/auth/waitlist', { method: 'POST', body: { email } }),
 
   // Notifications

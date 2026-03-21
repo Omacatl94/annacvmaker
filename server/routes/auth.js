@@ -303,6 +303,38 @@ export default async function authRoutes(app) {
     reply.send({ ok: true });
   });
 
+  // Check if an email belongs to an active account (used by login modal)
+  app.post('/check-email', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    schema: {
+      body: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', format: 'email', maxLength: 255 },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const normalized = req.body.email.toLowerCase().trim();
+    const existing = await app.db.query(
+      "SELECT id, status, google_id, linkedin_id FROM users WHERE LOWER(email) = $1 AND email NOT LIKE '%@anonymous'",
+      [normalized]
+    );
+    const user = existing.rows[0];
+    if (!user) {
+      return reply.send({ exists: false });
+    }
+    return reply.send({
+      exists: true,
+      active: user.status === 'active',
+      providers: {
+        google: !!user.google_id,
+        linkedin: !!user.linkedin_id,
+      },
+    });
+  });
+
   app.post('/waitlist', {
     config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
     schema: {

@@ -3063,6 +3063,31 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   margin-bottom: 16px;
 }
 
+.login-email-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.login-email-form .waitlist-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.login-modal-back {
+  margin-top: 16px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color var(--transition-fast);
+}
+.login-modal-back:hover {
+  color: var(--color-text-primary);
+}
+
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }

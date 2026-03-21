@@ -50,11 +50,33 @@ export default function Landing() {
 // ── Login Modal (blur backdrop) ──
 
 function LoginModal({ onClose }) {
+  const [email, setEmail] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState(null); // null | { exists, active, providers }
+
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onClose(); }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  const handleCheck = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setChecking(true);
+    try {
+      const res = await api.checkEmail(trimmed);
+      setResult(res);
+    } catch {
+      setResult({ exists: false });
+    }
+    setChecking(false);
+  };
+
+  const handleBack = () => {
+    setResult(null);
+    setEmail('');
+  };
 
   return (
     <div className="login-modal-overlay" onClick={onClose}>
@@ -63,9 +85,52 @@ function LoginModal({ onClose }) {
           <Icon name="x" size={20} />
         </button>
         <img src="/img/mascot/avatar.webp" alt="" className="login-modal-avatar" />
-        <h2>{t('landing.loginLink')}</h2>
-        <p className="login-subtitle">{t('landing.loginModalSubtitle')}</p>
-        <OAuthButtons />
+
+        {!result ? (
+          <>
+            <h2>{t('landing.loginLink')}</h2>
+            <p className="login-subtitle">{t('landing.loginModalSubtitle')}</p>
+            <div className="login-email-form">
+              <input
+                type="email"
+                placeholder={t('landing.waitlistPlaceholder')}
+                className="waitlist-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+                autoFocus
+              />
+              <button
+                className="btn-primary"
+                disabled={checking || !email.trim()}
+                onClick={handleCheck}
+              >
+                {checking ? '...' : t('landing.loginCheckBtn')}
+              </button>
+            </div>
+          </>
+        ) : result.exists && result.active ? (
+          <>
+            <h2>{t('landing.loginWelcomeBack')}</h2>
+            <p className="login-subtitle">{t('landing.loginChooseProvider')}</p>
+            <OAuthButtons />
+            <button className="login-modal-back" onClick={handleBack}>
+              {t('landing.loginBackBtn')}
+            </button>
+          </>
+        ) : result.exists && !result.active ? (
+          <>
+            <h2>{t('landing.loginWaitlisted')}</h2>
+            <p className="login-subtitle">{t('landing.loginWaitlistedText')}</p>
+            <button className="btn-primary" onClick={onClose}>{t('landing.loginOkBtn')}</button>
+          </>
+        ) : (
+          <>
+            <h2>{t('landing.loginNotFound')}</h2>
+            <p className="login-subtitle">{t('landing.loginNotFoundText')}</p>
+            <button className="btn-primary" onClick={onClose}>{t('landing.loginOkBtn')}</button>
+          </>
+        )}
       </div>
     </div>
   );
