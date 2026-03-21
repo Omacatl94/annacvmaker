@@ -65,13 +65,13 @@ export default function PricingModal({ onClose }) {
             <p className="pricing-subtitle">{t('beta.modalText')}</p>
 
             <div className="pricing-earn-section">
-              <h3 className="pricing-earn-title">Vuoi pi\u00F9 Raccoin?</h3>
+              <h3 className="pricing-earn-title">Vuoi più Raccoin?</h3>
               <div className="pricing-earn-options">
                 <div className="pricing-earn-option">
                   <Icon name="message-circle" size={20} />
                   <div>
                     <strong>Segnala bug o idee</strong>
-                    <p>Clicca il procione in basso a destra \u2014 i feedback utili valgono Raccoin extra</p>
+                    <p>Clicca il procione in basso a destra — i feedback utili valgono Raccoin extra</p>
                   </div>
                 </div>
               </div>
