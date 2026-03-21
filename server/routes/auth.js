@@ -333,7 +333,15 @@ export default async function authRoutes(app) {
     );
     const user = existing.rows[0];
     if (!user) {
-      return reply.send({ exists: false });
+      // Auto-add to waitlist
+      const wlResult = await app.db.query(
+        'INSERT INTO waitlist (email) VALUES ($1) ON CONFLICT (email) DO NOTHING RETURNING id',
+        [normalized]
+      );
+      if (wlResult.rowCount > 0) {
+        notifyAdminNewWaitlist(normalized, null, 'login_check').catch(() => {});
+      }
+      return reply.send({ exists: false, addedToWaitlist: true });
     }
     return reply.send({
       exists: true,

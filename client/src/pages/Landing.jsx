@@ -126,8 +126,8 @@ function LoginModal({ onClose }) {
           </>
         ) : (
           <>
-            <h2>{t('landing.loginNotFound')}</h2>
-            <p className="login-subtitle">{t('landing.loginNotFoundText')}</p>
+            <h2>{t('landing.loginAddedToWaitlist')}</h2>
+            <p className="login-subtitle">{t('landing.loginAddedToWaitlistText')}</p>
             <button className="btn-primary" onClick={onClose}>{t('landing.loginOkBtn')}</button>
           </>
         )}
