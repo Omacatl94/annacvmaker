@@ -71,7 +71,7 @@ export default function PricingModal({ onClose }) {
                   <Icon name="message-circle" size={20} />
                   <div>
                     <strong>Segnala bug o idee</strong>
-                    <p>Clicca il procione in basso a destra \u2014 i feedback utili vengono premiati</p>
+                    <p>Clicca il procione in basso a destra \u2014 i feedback utili valgono Raccoin extra</p>
                   </div>
                 </div>
               </div>

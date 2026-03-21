@@ -85,7 +85,7 @@ export async function sendWelcomeEmail(to, name) {
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#141414;border:1px solid #222;border-radius:8px;">
       <tr><td style="padding:16px;">
         <p style="font-size:13px;line-height:1.5;color:#888;margin:0;">
-          Hai trovato un bug o hai un'idea? Clicca il procione in basso a destra \u2014 i feedback utili vengono premiati con Raccoin extra.
+          Hai trovato un bug o hai un'idea? Clicca il procione in basso a destra \u2014 i feedback utili valgono Raccoin extra.
         </p>
       </td></tr>
     </table>
