@@ -347,6 +347,7 @@ function Features() {
     { iconName: 'target', title: t('landing.feat2Title'), text: t('landing.feat2Text') },
     { iconName: 'palette', title: t('landing.feat3Title'), text: t('landing.feat3Text') },
     { iconName: 'zap', title: t('landing.feat4Title'), text: t('landing.feat4Text') },
+    { iconName: 'sparkles', title: t('landing.feat5Title'), text: t('landing.feat5Text'), comingSoon: true },
   ];
 
   return (
@@ -354,11 +355,11 @@ function Features() {
       <h2 className="landing-h2">{t('landing.featTitle')}</h2>
       <div className="bento-grid">
         {featureData.map((f, i) => (
-          <div className={`bento-item bento-item-${i}`} key={i}>
+          <div className={`bento-item bento-item-${i}${f.comingSoon ? ' bento-coming' : ''}`} key={i}>
             <div className="bento-icon">
               <Icon name={f.iconName} size={i === 0 ? 36 : 28} />
             </div>
-            <h3>{f.title}</h3>
+            <h3>{f.title}{f.comingSoon && <span className="bento-soon-badge">Soon</span>}</h3>
             <p>{f.text}</p>
           </div>
         ))}

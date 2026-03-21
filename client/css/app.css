@@ -2802,6 +2802,29 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   }
 }
 
+/* Coming soon item */
+.bento-coming {
+  border-style: dashed;
+  border-color: var(--color-border);
+  opacity: 0.7;
+}
+.bento-coming .bento-icon {
+  color: var(--color-text-muted);
+}
+.bento-soon-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-accent);
+  background: rgba(0, 230, 118, 0.1);
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
 /* Very small screens: stack to single column */
 @media (max-width: 380px) {
   .bento-grid {

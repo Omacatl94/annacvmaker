@@ -94,6 +94,8 @@ const it = {
     feat3Text: 'Non ti piace una frase? Cliccaci sopra e riscrivila. Il CV e\' tuo, il procione ti da\' la base.',
     feat4Title: 'Zero hallucination',
     feat4Text: '8 regole anti-hallucination verificano che ogni riga del CV corrisponda al tuo profilo reale. Niente invenzioni.',
+    feat5Title: 'In arrivo',
+    feat5Text: 'Lettera di presentazione AI, tracking candidature, analisi strategica del profilo e molto altro.',
 
     pricingTitle: 'Open Beta \u2014 Gratis',
     pricingSubtitle: '2 CV al giorno, zero costi. Nessuna carta di credito.',
