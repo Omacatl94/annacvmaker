@@ -1,6 +1,6 @@
 import { adminGuard } from '../middleware/auth-guard.js';
 import { openrouter } from '../services/openrouter.js';
-import { sendWelcomeEmail } from '../services/email.js';
+import { sendWelcomeEmail, sendRaccoinGiftEmail } from '../services/email.js';
 import { notify } from '../services/notifications.js';
 
 const WELCOME_CREDITS = 2;
@@ -164,6 +164,13 @@ export default async function adminRoutes(app) {
 
     if (diff > 0) {
       notify(app.db, id, 'credits_received', { credits: diff, reason: reason || null }).catch(() => {});
+
+      // Email notification
+      const userRes = await app.db.query('SELECT email, name FROM users WHERE id = $1', [id]);
+      if (userRes.rows[0]?.email) {
+        sendRaccoinGiftEmail(userRes.rows[0].email, userRes.rows[0].name, diff, reason || null)
+          .catch((err) => req.log.error({ err }, 'Failed to send raccoin gift email'));
+      }
     }
 
     // Log in credit_usage
