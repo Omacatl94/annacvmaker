@@ -223,8 +223,10 @@ function ProblemSection() {
             <div className="landing-card-icon">
               <Icon name={p.iconName} size={32} />
             </div>
-            <h3>{p.title}</h3>
-            <p>{p.text}</p>
+            <div className="landing-card-body">
+              <h3>{p.title}</h3>
+              <p>{p.text}</p>
+            </div>
           </div>
         ))}
       </div>

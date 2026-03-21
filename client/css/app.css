@@ -2626,10 +2626,40 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
 .landing-grid-3 {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-lg);
+  gap: var(--space-sm);
 }
 @media (min-width: 768px) {
-  .landing-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .landing-grid-3 { grid-template-columns: 1fr 1fr 1fr; gap: var(--space-lg); }
+}
+
+/* Mobile: icon-left compact layout for 3-col cards */
+@media (max-width: 767px) {
+  .landing-grid-3 .landing-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-md);
+  }
+  .landing-grid-3 .landing-card-icon {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+  .landing-grid-3 .landing-card-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+  .landing-grid-3 .landing-card-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .landing-grid-3 .landing-card h3 {
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+  .landing-grid-3 .landing-card p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
 }
 
 .landing-grid-4 {
