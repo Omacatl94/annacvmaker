@@ -2394,14 +2394,66 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   border-color: var(--color-accent);
 }
 
-/* Notes textarea */
+/* Notes collapsed (single line) */
+.notes-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-input);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  background: var(--color-bg-input);
+  min-height: 34px;
+}
+.notes-collapsed:hover {
+  border-color: var(--color-accent);
+}
+.notes-collapsed svg {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.notes-preview {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+.notes-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-accent);
+  background: rgba(0, 230, 118, 0.1);
+  padding: 1px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* Notes expanded textarea */
 .notes-textarea {
   resize: vertical;
-  min-height: 40px;
+  min-height: 60px;
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.5;
   white-space: pre-wrap;
+  width: 100%;
+}
+.notes-collapse-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 2px;
+}
+.notes-collapse-btn:hover {
+  color: var(--color-text-primary);
 }
 
 @media (max-width: 480px) {

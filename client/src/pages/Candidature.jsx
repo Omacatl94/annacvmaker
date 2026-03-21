@@ -317,16 +317,47 @@ function CandidatureCard({ item, onUpdate, onDelete }) {
         </div>
       </div>
 
-      {/* Notes (textarea for multi-line log) */}
-      <div className="candidature-notes">
-        <textarea
-          className="notes-input notes-textarea"
-          value={item.notes || ''}
-          placeholder="Il diario della tua candidatura appare qui..."
-          onChange={handleNotesChange}
-          rows={Math.max(2, (item.notes || '').split('\n').length)}
-        />
-      </div>
+      {/* Notes (collapsible) */}
+      <NotesField notes={item.notes || ''} onChange={handleNotesChange} />
+    </div>
+  );
+}
+
+// ── Notes Field (collapsible) ──
+
+function NotesField({ notes, onChange }) {
+  const [expanded, setExpanded] = useState(false);
+  const lines = (notes || '').split('\n').filter(Boolean);
+  const hasNotes = lines.length > 0;
+  const preview = hasNotes ? lines[lines.length - 1] : '';
+
+  return (
+    <div className="candidature-notes">
+      {!expanded ? (
+        <div className="notes-collapsed" onClick={() => setExpanded(true)}>
+          <Icon name="edit" size={14} />
+          <span className="notes-preview">
+            {hasNotes ? preview : 'Appunti...'}
+          </span>
+          {lines.length > 1 && (
+            <span className="notes-count">+{lines.length - 1}</span>
+          )}
+        </div>
+      ) : (
+        <>
+          <textarea
+            className="notes-input notes-textarea"
+            value={notes}
+            placeholder="Il diario della tua candidatura appare qui..."
+            onChange={onChange}
+            rows={Math.max(3, lines.length + 1)}
+            autoFocus
+          />
+          <button className="notes-collapse-btn" onClick={() => setExpanded(false)}>
+            Chiudi
+          </button>
+        </>
+      )}
     </div>
   );
 }
