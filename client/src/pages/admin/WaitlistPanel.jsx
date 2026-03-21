@@ -103,6 +103,7 @@ export default function WaitlistPanel() {
 
 function WaitlistCard({ entry, onActivated }) {
   const [activating, setActivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const date = new Date(entry.created_at).toLocaleDateString('it-IT', {
     day: 'numeric',
@@ -124,6 +125,18 @@ function WaitlistCard({ entry, onActivated }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Rimuovere ${entry.email} dalla waitlist?`)) return;
+    setDeleting(true);
+    try {
+      await api.adminDeleteWaitlist(entry.id);
+      onActivated(entry.id);
+    } catch (err) {
+      alert('Errore: ' + err.message);
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="waitlist-row">
       <div className="waitlist-row-info">
@@ -141,13 +154,22 @@ function WaitlistCard({ entry, onActivated }) {
           <span>{date}</span>
         </div>
       </div>
-      <button
-        className="btn-sm btn-primary"
-        disabled={activating}
-        onClick={handleActivate}
-      >
-        {activating ? '...' : 'Attiva'}
-      </button>
+      <div className="waitlist-row-actions">
+        <button
+          className="btn-sm btn-primary"
+          disabled={activating || deleting}
+          onClick={handleActivate}
+        >
+          {activating ? '...' : 'Attiva'}
+        </button>
+        <button
+          className="btn-sm btn-danger"
+          disabled={activating || deleting}
+          onClick={handleDelete}
+        >
+          {deleting ? '...' : 'Elimina'}
+        </button>
+      </div>
     </div>
   );
 }

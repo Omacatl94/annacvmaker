@@ -4790,6 +4790,11 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.waitlist-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
 .waitlist-row-dot {
   margin: 0 3px;
   opacity: 0.5;

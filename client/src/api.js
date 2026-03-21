@@ -107,6 +107,7 @@ export const api = {
   adminErrors: (params) => request(`/admin/errors?${new URLSearchParams(params)}`),
   adminWaitlist: (params) => request(`/admin/waitlist?${new URLSearchParams(params)}`),
   adminActivateWaitlist: (id) => request(`/admin/waitlist/${id}/activate`, { method: 'POST', body: {} }),
+  adminDeleteWaitlist: (id) => request(`/admin/waitlist/${id}`, { method: 'DELETE' }),
   adminActivateUser: (id) => request(`/admin/users/${id}/activate`, { method: 'PUT', body: {} }),
 
   // Feedback

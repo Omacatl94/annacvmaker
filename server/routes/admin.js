@@ -351,4 +351,20 @@ export default async function adminRoutes(app) {
     reply.send({ ok: true, userId: user.id });
   });
 
+  // ── Delete waitlist entry ──
+  app.delete('/waitlist/:id', async (req, reply) => {
+    const { id } = req.params;
+    const result = await app.db.query('DELETE FROM waitlist WHERE id = $1 RETURNING email', [id]);
+    if (result.rowCount === 0) return reply.code(404).send({ error: 'Waitlist entry not found' });
+
+    await app.db.query(
+      `INSERT INTO audit_logs (user_id, action, ip, user_agent, metadata)
+       VALUES ($1, 'admin_delete_waitlist', $2, $3, $4)`,
+      [req.user.id, req.ip, req.headers['user-agent']?.substring(0, 500) || null,
+       JSON.stringify({ waitlistId: id, email: result.rows[0].email })]
+    );
+
+    reply.send({ ok: true });
+  });
+
 }
