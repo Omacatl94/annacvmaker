@@ -140,7 +140,9 @@ function UserCard({ user: initialUser }) {
         </div>
         <div className="user-card-email">{user.email}</div>
         <div className="user-card-summary">
-          <span>{user.credits} Raccoin</span>
+          <span title="CV gratis usati oggi">{'\u26A1'}{+user.daily_used}/{2}</span>
+          <span className="user-card-dot">{'\u00B7'}</span>
+          <span title="Raccoin bonus">{'\uD83E\uDE99'}{user.credits}</span>
           <span className="user-card-dot">{'\u00B7'}</span>
           <span>{user.cvs_generated} CV</span>
           <span className="user-card-dot">{'\u00B7'}</span>
@@ -157,8 +159,12 @@ function UserCard({ user: initialUser }) {
             <div className="section-block-title">Statistiche</div>
             <div className="user-card-kpis">
               <div className="user-card-kpi">
+                <span className="kpi-num">{+user.daily_used}/{2}</span>
+                <span className="kpi-label-sm">Daily usati</span>
+              </div>
+              <div className="user-card-kpi">
                 <span className="kpi-num">{user.credits}</span>
-                <span className="kpi-label-sm">Raccoin</span>
+                <span className="kpi-label-sm">Raccoin bonus</span>
               </div>
               <div className="user-card-kpi">
                 <span className="kpi-num">{user.cvs_generated}</span>

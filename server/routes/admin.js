@@ -120,7 +120,8 @@ export default async function adminRoutes(app) {
         (u.linkedin_id IS NOT NULL) as linkedin_linked,
         (SELECT COUNT(*) FROM generated_cvs g JOIN cv_profiles cp ON g.profile_id = cp.id WHERE cp.user_id = u.id) as cvs_generated,
         (SELECT COALESCE(SUM(amount_cents), 0) FROM purchases p WHERE p.user_id = u.id) as total_spent_cents,
-        (SELECT MAX(created_at) FROM audit_logs al WHERE al.user_id = u.id AND al.action LIKE 'login_%') as last_login
+        (SELECT MAX(created_at) FROM audit_logs al WHERE al.user_id = u.id AND al.action LIKE 'login_%') as last_login,
+        (SELECT COALESCE(SUM(credits_consumed), 0) FROM credit_usage WHERE user_id = u.id AND created_at >= CURRENT_DATE) as daily_used
       FROM users u ${where}
       ORDER BY ${sortExpr} ${sortDir}
       LIMIT $${params.length - 1} OFFSET $${params.length}
