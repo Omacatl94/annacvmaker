@@ -104,3 +104,62 @@ export async function sendWelcomeEmail(to, name) {
 </body></html>`,
   });
 }
+
+export async function sendFeedbackRewardEmail(to, name, credits, note) {
+  if (!resend) return;
+
+  const firstName = (name || '').split(' ')[0] || 'Ciao';
+  const noteHtml = note
+    ? `<tr><td style="padding:0 24px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#141414;border:1px solid #222;border-radius:8px;">
+          <tr><td style="padding:16px;">
+            <p style="font-size:12px;color:#888;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">Messaggio dal team</p>
+            <p style="font-size:14px;line-height:1.5;color:#e0e0e0;margin:0;font-style:italic;">\u201C${note}\u201D</p>
+          </td></tr>
+        </table>
+      </td></tr>`
+    : '';
+
+  await resend.emails.send({
+    from: config.emailFrom,
+    to,
+    subject: `Grazie per il feedback \u2014 +${credits} Raccoin`,
+    html: `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#0a0a0a;">
+<tr><td align="center" style="padding:0;">
+<table role="presentation" width="520" cellspacing="0" cellpadding="0" style="max-width:520px;width:100%;margin:0 auto;">
+
+  <tr><td style="padding:32px 24px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+    <p style="font-size:18px;font-weight:700;color:#f5f5f5;margin:0 0 12px;text-align:center;">
+      ${firstName}, il tuo feedback conta!
+    </p>
+    <p style="font-size:15px;line-height:1.6;color:#b0b0b0;margin:0 0 8px;text-align:center;">
+      Il procione ha apprezzato la tua segnalazione e ti ha premiato con
+    </p>
+    <p style="font-size:32px;font-weight:800;color:#00E676;margin:0 0 20px;text-align:center;">
+      +${credits} Raccoin
+    </p>
+  </td></tr>
+
+  ${noteHtml}
+
+  <tr><td align="center" style="padding:8px 24px 24px;">
+    <a href="https://jobhacker.it" style="display:inline-block;padding:14px 40px;background:#00E676;color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:700;font-size:16px;border-radius:8px;text-decoration:none;">
+      Usa i tuoi Raccoin
+    </a>
+  </td></tr>
+
+  <tr><td style="padding:0 24px 32px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+    <p style="font-size:11px;color:#444;margin:0;">
+      JobHacker \u00B7 <a href="https://jobhacker.it" style="color:#444;text-decoration:none;">jobhacker.it</a>
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body></html>`,
+  });
+}

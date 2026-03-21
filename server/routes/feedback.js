@@ -1,5 +1,6 @@
 import { adminGuard } from '../middleware/auth-guard.js';
 import { notify } from '../services/notifications.js';
+import { sendFeedbackRewardEmail } from '../services/email.js';
 
 export default async function feedbackRoutes(app) {
 
@@ -82,8 +83,15 @@ export default async function feedbackRoutes(app) {
       [credits, note || null, id]
     );
 
-    // Notification
+    // In-app notification
     notify(app.db, entry.user_id, 'feedback_rewarded', { credits, note: note || null }).catch(() => {});
+
+    // Email notification
+    const userRes = await app.db.query('SELECT email, name FROM users WHERE id = $1', [entry.user_id]);
+    if (userRes.rows[0]?.email) {
+      sendFeedbackRewardEmail(userRes.rows[0].email, userRes.rows[0].name, credits, note || null)
+        .catch((err) => req.log.error({ err }, 'Failed to send feedback reward email'));
+    }
 
     // Audit log
     app.db.query(
