@@ -2307,8 +2307,10 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
   border-radius: 50%;
   border: 2px solid var(--color-border);
   background: var(--color-bg-secondary);
@@ -2316,6 +2318,7 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   cursor: pointer;
   transition: all 0.25s ease;
   flex-shrink: 0;
+  padding: 0;
   margin-top: 2px;
 }
 .pipeline-rejected:hover {
@@ -2360,6 +2363,17 @@ button, nav, .app-header, .tab-btn, .admin-tab-btn, .feedback-fab {
   display: flex;
   gap: 6px;
   align-items: center;
+}
+.raccoon-prompt-form .btn-primary {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 .raccoon-prompt-input {
   flex: 1;
