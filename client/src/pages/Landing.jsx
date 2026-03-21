@@ -39,7 +39,6 @@ export default function Landing() {
       <Features />
       <Metrics />
       <PricingTeaser />
-      <FinalCTA scrollToWaitlist={scrollToWaitlist} />
       <WaitlistSection ref={waitlistRef} />
       <Footer navigate={navigate} />
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
@@ -356,21 +355,7 @@ function PricingTeaser() {
   );
 }
 
-// ── Final CTA ──
-
-function FinalCTA({ scrollToWaitlist }) {
-  return (
-    <section className="landing-section landing-final-cta">
-      <h2 className="landing-h2">{t('landing.ctaTitle')}</h2>
-      <p className="landing-section-subtitle">{t('landing.ctaText')}</p>
-      <button className="btn-primary btn-lg" onClick={scrollToWaitlist}>
-        {t('landing.waitlistTitle')}
-      </button>
-    </section>
-  );
-}
-
-// ── Waitlist Section (bottom of page, email only) ──
+// ── Final CTA + Waitlist (single block) ──
 
 const WaitlistSection = forwardRef(function WaitlistSection(props, ref) {
   const [email, setEmail] = useState('');
@@ -395,9 +380,12 @@ const WaitlistSection = forwardRef(function WaitlistSection(props, ref) {
   };
 
   return (
-    <section className="landing-section landing-waitlist-section" ref={ref}>
+    <section className="landing-section landing-final-cta" ref={ref}>
+      <h2 className="landing-h2">{t('landing.ctaTitle')}</h2>
+      <p className="landing-section-subtitle">{t('landing.ctaText')}</p>
+
       <div className="waitlist-card">
-        <h2>{t('landing.waitlistTitle')}</h2>
+        <h3>{t('landing.waitlistTitle')}</h3>
         <p className="login-subtitle">{t('landing.waitlistSubtitle')}</p>
 
         {alreadyActive ? (
