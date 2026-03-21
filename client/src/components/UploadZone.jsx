@@ -93,7 +93,7 @@ export default function UploadZone({ onParsed }) {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.docx,.doc,.jpg,.jpeg,.png,.webp"
+        accept=".pdf,.docx,.doc,.odt,.jpg,.jpeg,.png,.webp"
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />

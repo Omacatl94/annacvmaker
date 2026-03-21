@@ -201,7 +201,7 @@ const it = {
 
   // ── CV Upload ──
   upload: {
-    dropText: 'Trascina il CV qui (PDF, DOCX, immagine) o clicca per scegliere',
+    dropText: 'Trascina il CV qui (PDF, Word, ODT, immagine) o clicca per scegliere',
     subtext: 'Leggo il tuo CV e pre-compilo tutti i campi',
     loading: 'Stiamo leggendo il tuo CV...',
     success: 'CV letto. Campi pre-compilati \u2014 controlla e correggi se serve.',

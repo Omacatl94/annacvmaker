@@ -2,6 +2,7 @@ import { activeGuard } from '../middleware/auth-guard.js';
 import { creditGuard } from '../middleware/credits.js';
 import { openrouter } from '../services/openrouter.js';
 import { safePath } from '../utils/safe-path.js';
+import { isOfficeDocument, extractDocumentText } from '../services/doc-parser.js';
 import { consumeCredits } from '../services/credits.js';
 import { buildGenerationPrompt, sanitizeUserText } from '../services/prompt-builder.js';
 import { buildAnalyzerPrompt } from '../services/cv-analyzer.js';
@@ -34,7 +35,11 @@ export default async function aiRoutes(app) {
     if (!filePath) return reply.code(400).send({ error: 'filePath required' });
     const absPath = safePath(filePath);
 
-    const rawText = await openrouter.parseDocument(absPath);
+    // Office documents (DOCX, ODT): extract text locally
+    // PDF and images: use Gemini OCR
+    const rawText = isOfficeDocument(absPath)
+      ? await extractDocumentText(absPath)
+      : await openrouter.parseDocument(absPath);
 
     const cleanRawText = sanitizeUserText(rawText);
     const structurePrompt = `You are a CV parser. Given raw text extracted from a CV document, extract and structure the data into JSON.

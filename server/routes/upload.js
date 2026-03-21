@@ -14,7 +14,9 @@ const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_CV_TYPES = [
   'application/pdf',
   'image/jpeg', 'image/png', 'image/webp',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/msword', // .doc
+  'application/vnd.oasis.opendocument.text', // .odt
 ];
 
 const MAGIC_BYTES = {
@@ -22,7 +24,9 @@ const MAGIC_BYTES = {
   'image/png': [Buffer.from([0x89, 0x50, 0x4E, 0x47])],
   'image/webp': [Buffer.from('RIFF')],
   'application/pdf': [Buffer.from('%PDF')],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [Buffer.from([0x50, 0x4B, 0x03, 0x04])],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [Buffer.from([0x50, 0x4B, 0x03, 0x04])], // ZIP
+  'application/msword': [Buffer.from([0xD0, 0xCF, 0x11, 0xE0])], // OLE compound
+  'application/vnd.oasis.opendocument.text': [Buffer.from([0x50, 0x4B, 0x03, 0x04])], // ZIP
 };
 
 function validateMagicBytes(buffer, mimetype) {
@@ -64,7 +68,7 @@ export default async function uploadRoutes(app) {
     const file = await req.file();
     if (!file) return reply.code(400).send({ error: 'No file uploaded' });
     if (!ALLOWED_CV_TYPES.includes(file.mimetype)) {
-      return reply.code(400).send({ error: 'Invalid file type. Use PDF, DOCX, JPEG, or PNG.' });
+      return reply.code(400).send({ error: 'Invalid file type. Use PDF, DOCX, DOC, ODT, JPEG, or PNG.' });
     }
 
     const chunks = [];
