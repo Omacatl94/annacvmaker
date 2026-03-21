@@ -37,7 +37,6 @@ export default function Landing() {
       <ComparisonSection />
       <HowItWorks />
       <Features />
-      <Metrics />
       <PricingTeaser />
       <WaitlistSection ref={waitlistRef} />
       <Footer navigate={navigate} />
@@ -361,28 +360,6 @@ function Features() {
             </div>
             <h3>{f.title}{f.comingSoon && <span className="bento-soon-badge">Soon</span>}</h3>
             <p>{f.text}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Metrics() {
-  const metricData = [
-    { value: t('landing.metric1Value'), label: t('landing.metric1Label') },
-    { value: t('landing.metric2Value'), label: t('landing.metric2Label') },
-    { value: t('landing.metric3Value'), label: t('landing.metric3Label') },
-  ];
-
-  return (
-    <section className="landing-section landing-metrics">
-      <h2 className="landing-h2">{t('landing.metricsTitle')}</h2>
-      <div className="landing-grid-3">
-        {metricData.map((m, i) => (
-          <div className="metric-card" key={i}>
-            <div className="metric-value">{m.value}</div>
-            <div className="metric-label">{m.label}</div>
           </div>
         ))}
       </div>
