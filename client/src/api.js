@@ -52,6 +52,7 @@ export const api = {
   fitScore: (data) => request('/ai/fit-score', { method: 'POST', body: data }),
   extractKeywords: (data) => request('/ai/extract-keywords', { method: 'POST', body: data }),
   generate: (data) => request('/ai/generate', { method: 'POST', body: data }),
+  scrapeAndGenerate: (data) => request('/ai/scrape-and-generate', { method: 'POST', body: data }),
   atsScore: (data) => request('/ai/ats-score', { method: 'POST', body: data }),
   optimize: (data) => request('/ai/optimize', { method: 'POST', body: data }),
   coverLetter: (data) => request('/ai/cover-letter', { method: 'POST', body: data }),
