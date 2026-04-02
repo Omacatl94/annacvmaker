@@ -22,10 +22,14 @@ export async function generatePDF(html) {
       'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
       'strong', 'em', 'b', 'i', 'u', 'br', 'hr', 'a', 'img',
       'section', 'article', 'header', 'footer', 'nav', 'main',
+      'svg', 'path', 'circle', 'line', 'polyline', 'rect', 'g',
     ],
     ALLOWED_ATTR: [
       'class', 'id', 'style', 'href', 'src', 'alt', 'width', 'height',
-      'colspan', 'rowspan',
+      'colspan', 'rowspan', 'data-theme', 'data-field',
+      'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap',
+      'stroke-linejoin', 'd', 'cx', 'cy', 'r', 'x1', 'y1', 'x2', 'y2',
+      'points', 'rx', 'ry', 'x', 'y', 'xmlns',
     ],
     ALLOW_DATA_ATTR: false,
   });
