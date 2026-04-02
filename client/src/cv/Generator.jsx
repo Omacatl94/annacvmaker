@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { api } from '../api';
 import { t } from '../strings';
 import { track } from '../analytics';
+import Icon from '../components/Icon';
 
 const STYLES = [
   { id: 'professional', name: 'Professional', font: 'Georgia, serif', color: '#0d7377' },
@@ -100,8 +101,13 @@ export default function Generator({
   const [generating, setGenerating] = useState(false);
   const [fitScore, setFitScore] = useState(null);
   const [fitLoading, setFitLoading] = useState(false);
+  const [mode, setMode] = useState('jd');
+  const [siteUrl, setSiteUrl] = useState('');
+  const [targetRole, setTargetRole] = useState('');
+  const [sparseData, setSparseData] = useState(null);
 
   const hasJd = jd.trim().length >= 80;
+  const hasSpontaneousInput = siteUrl.trim().length > 0 && targetRole.trim().length > 0;
 
   // Explicit fit score check
   const handleCheckFit = useCallback(async () => {
@@ -187,35 +193,164 @@ export default function Generator({
     }
   }, [jd, lang, profile, style, onGenerated, onJobDescription]);
 
+  const handleSpontaneousGenerate = useCallback(async (confirmSparse = false) => {
+    if (!siteUrl.trim()) {
+      setStatus({ text: t('generator.urlRequired'), type: 'error' });
+      return;
+    }
+    if (!targetRole.trim()) {
+      setStatus({ text: t('generator.roleRequired'), type: 'error' });
+      return;
+    }
+
+    setGenerating(true);
+    setStatus({ text: '', type: '' });
+    setSparseData(null);
+
+    try {
+      setProgress({ visible: true, percent: 15, step: t('generator.scrapingProgress') });
+
+      const result = await api.scrapeAndGenerate({
+        url: siteUrl.trim(),
+        role: targetRole.trim(),
+        profile,
+        language: lang,
+        style,
+        confirmSparse,
+      });
+
+      if (result.sparse) {
+        setProgress({ visible: false, percent: 0, step: '' });
+        setGenerating(false);
+        setSparseData(result);
+        return;
+      }
+
+      setProgress({ visible: true, percent: 80, step: 'Finalizzazione...' });
+      await sleep(300);
+
+      track('cv_generated_spontaneous', { language: lang, style });
+
+      setProgress({ visible: true, percent: 100, step: 'CV pronto!' });
+      await sleep(500);
+      setProgress({ visible: false, percent: 0, step: '' });
+
+      if (onGenerated) onGenerated(result, `[Candidatura spontanea] ${targetRole.trim()} \u2014 ${siteUrl.trim()}`, null, null);
+    } catch (err) {
+      setProgress({ visible: false, percent: 0, step: '' });
+      if (err.message === 'Crediti insufficienti' || err.message === 'Limite giornaliero raggiunto') {
+        setStatus({
+          text: err.message === 'Limite giornaliero raggiunto'
+            ? 'Limite giornaliero raggiunto. Condividi il tuo link referral per ottenere crediti extra!'
+            : 'Crediti esauriti. Ricarica per continuare.',
+          type: 'error',
+        });
+      } else {
+        setStatus({ text: t('generator.error') + ' ' + err.message, type: 'error' });
+      }
+    } finally {
+      setGenerating(false);
+    }
+  }, [siteUrl, targetRole, lang, profile, style, onGenerated]);
+
   return (
     <div className="generation-step">
-      {/* Job Description textarea */}
-      <div className="form-group">
-        <label>{t('generator.jdLabel')}</label>
-        <textarea
-          className="jd-textarea"
-          placeholder={t('generator.jdPlaceholder')}
-          style={{ minHeight: 200 }}
-          value={jd}
-          onChange={(e) => {
-            setJd(e.target.value);
-            // Reset fit score when JD changes
-            if (fitScore) setFitScore(null);
-          }}
-        />
+      {/* Mode selector */}
+      <div className="mode-selector">
+        <button
+          className={`mode-btn${mode === 'jd' ? ' active' : ''}`}
+          onClick={() => setMode('jd')}
+        >
+          <Icon name="file-text" size={20} />
+          <span>{t('generator.modeJd')}</span>
+        </button>
+        <button
+          className={`mode-btn${mode === 'spontaneous' ? ' active' : ''}`}
+          onClick={() => setMode('spontaneous')}
+        >
+          <Icon name="building" size={20} />
+          <span>{t('generator.modeSpontaneous')}</span>
+        </button>
       </div>
 
-      {/* Check compatibility button */}
-      <button
-        className="btn-secondary btn-check-fit"
-        disabled={!hasJd || fitLoading}
-        onClick={handleCheckFit}
-      >
-        {fitLoading ? 'Analisi in corso...' : 'Verifica compatibilit\u00E0'}
-      </button>
+      {mode === 'jd' ? (
+        <>
+          {/* Job Description textarea */}
+          <div className="form-group">
+            <label>{t('generator.jdLabel')}</label>
+            <textarea
+              className="jd-textarea"
+              placeholder={t('generator.jdPlaceholder')}
+              style={{ minHeight: 200 }}
+              value={jd}
+              onChange={(e) => {
+                setJd(e.target.value);
+                if (fitScore) setFitScore(null);
+              }}
+            />
+          </div>
 
-      {/* Fit Score with raccoon */}
-      {fitScore && <FitScoreCard result={fitScore} />}
+          {/* Check compatibility button */}
+          <button
+            className="btn-secondary btn-check-fit"
+            disabled={!hasJd || fitLoading}
+            onClick={handleCheckFit}
+          >
+            {fitLoading ? 'Analisi in corso...' : 'Verifica compatibilit\u00E0'}
+          </button>
+
+          {/* Fit Score with raccoon */}
+          {fitScore && <FitScoreCard result={fitScore} />}
+        </>
+      ) : (
+        <>
+          {/* Spontaneous: URL + Role inputs */}
+          <div className="form-group">
+            <label>{t('generator.urlLabel')}</label>
+            <input
+              type="url"
+              className="jd-textarea"
+              style={{ minHeight: 'auto', padding: '12px 16px' }}
+              placeholder={t('generator.urlPlaceholder')}
+              value={siteUrl}
+              onChange={(e) => { setSiteUrl(e.target.value); setSparseData(null); }}
+            />
+          </div>
+          <div className="form-group">
+            <label>{t('generator.roleLabel')}</label>
+            <input
+              type="text"
+              className="jd-textarea"
+              style={{ minHeight: 'auto', padding: '12px 16px' }}
+              placeholder={t('generator.rolePlaceholder')}
+              value={targetRole}
+              onChange={(e) => setTargetRole(e.target.value)}
+            />
+          </div>
+
+          {/* Sparse data warning */}
+          {sparseData && (
+            <div className="sparse-warning card">
+              <strong>{t('generator.sparseTitle')}</strong>
+              <p>{t('generator.sparseMessage')}</p>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button
+                  className="btn-primary btn-sm"
+                  onClick={() => { setSparseData(null); handleSpontaneousGenerate(true); }}
+                >
+                  {t('generator.sparseConfirm')}
+                </button>
+                <button
+                  className="btn-secondary btn-sm"
+                  onClick={() => setSparseData(null)}
+                >
+                  {t('generator.sparseCancel')}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Language selector */}
       <div className="lang-selector">
@@ -270,8 +405,8 @@ export default function Generator({
       {/* Generate button */}
       <button
         className="btn-primary btn-generate"
-        disabled={generating || !jd.trim()}
-        onClick={handleGenerate}
+        disabled={generating || (mode === 'jd' ? !jd.trim() : !hasSpontaneousInput)}
+        onClick={mode === 'jd' ? handleGenerate : () => handleSpontaneousGenerate(false)}
       >
         {generating ? 'Generazione in corso...' : t('generator.generate')}
       </button>
