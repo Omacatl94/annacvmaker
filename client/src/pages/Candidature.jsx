@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { buildCVHTML } from '../cv/buildCVHTML';
+import Icon from '../components/Icon';
 
 const STATUS_MAP = {
   sent: { label: 'Inviato', color: '#00E676' },
@@ -221,6 +222,14 @@ function CandidatureCard({ item, onUpdate }) {
       <div className="candidature-top">
         <div className="candidature-title">
           {company ? `${role} \u2014 ${company}` : role}
+          {item.source_type === 'spontaneous' && (
+            <span className="badge-spontaneous">Spontanea</span>
+          )}
+          {item.source_url && (
+            <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="source-link" title="Sito aziendale">
+              <Icon name="external-link" size={14} />
+            </a>
+          )}
         </div>
         <select
           className="status-select"
