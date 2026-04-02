@@ -8,6 +8,30 @@
  * - Skills pool comes from user's declared skills
  * - Tenure calculations are dynamic per experience
  */
+function sanitizeUserText(text) {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/={3,}/g, '---')
+    .replace(/#{3,}/g, '---')
+    .replace(/<\/?(?:system|instruction|prompt|ignore|override)[^>]*>/gi, '')
+    .replace(/\[(?:SYSTEM|INST|IGNORE|OVERRIDE)[^\]]*\]/gi, '');
+}
+
+function sanitizeProfile(profile) {
+  if (!profile || typeof profile !== 'object') return profile;
+  const clean = {};
+  for (const [key, val] of Object.entries(profile)) {
+    if (typeof val === 'string') clean[key] = sanitizeUserText(val);
+    else if (Array.isArray(val)) clean[key] = val.map(item =>
+      typeof item === 'string' ? sanitizeUserText(item) :
+      typeof item === 'object' && item ? sanitizeProfile(item) : item
+    );
+    else if (typeof val === 'object' && val) clean[key] = sanitizeProfile(val);
+    else clean[key] = val;
+  }
+  return clean;
+}
+
 export function buildGenerationPrompt(profile, jobDescription, language, targetKeywords) {
   const isIt = language === 'it';
   const langLabel = isIt ? 'Italian' : 'English';
