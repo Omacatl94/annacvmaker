@@ -37,8 +37,8 @@ export const config = {
     apiKey: env('OPENROUTER_API_KEY'),
     baseUrl: 'https://openrouter.ai/api/v1',
     models: {
-      generation: 'anthropic/claude-opus-4-6',
-      analysis: 'anthropic/claude-sonnet-4',
+      generation: 'anthropic/claude-sonnet-4-6',
+      analysis: 'anthropic/claude-sonnet-4-6',
       ats: 'anthropic/claude-haiku-4.5',
       ocr: 'google/gemini-2.5-flash',
     },
