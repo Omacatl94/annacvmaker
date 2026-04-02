@@ -3,7 +3,7 @@ import { creditGuard } from '../middleware/credits.js';
 import { openrouter } from '../services/openrouter.js';
 import { safePath } from '../utils/safe-path.js';
 import { consumeCredits } from '../services/credits.js';
-import { buildGenerationPrompt, buildSpontaneousPrompt, sanitizeUserText } from '../services/prompt-builder.js';
+import { buildGenerationPrompt, buildSpontaneousPrompt } from '../services/prompt-builder.js';
 import { scrapeSite } from '../services/site-scraper.js';
 import { buildAnalyzerPrompt } from '../services/cv-analyzer.js';
 import { buildATSPrompt, buildOptimizePrompt, buildKeywordExtractionPrompt, buildFitScorePrompt } from '../services/ats-scorer.js';
