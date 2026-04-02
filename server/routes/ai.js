@@ -3,7 +3,8 @@ import { creditGuard } from '../middleware/credits.js';
 import { openrouter } from '../services/openrouter.js';
 import { safePath } from '../utils/safe-path.js';
 import { consumeCredits } from '../services/credits.js';
-import { buildGenerationPrompt } from '../services/prompt-builder.js';
+import { buildGenerationPrompt, buildSpontaneousPrompt, sanitizeUserText } from '../services/prompt-builder.js';
+import { scrapeSite } from '../services/site-scraper.js';
 import { buildAnalyzerPrompt } from '../services/cv-analyzer.js';
 import { buildATSPrompt, buildOptimizePrompt, buildKeywordExtractionPrompt, buildFitScorePrompt } from '../services/ats-scorer.js';
 import { buildCoverLetterPrompt } from '../services/cover-letter-builder.js';
@@ -240,6 +241,60 @@ Rules: Extract ONLY what is explicitly written. Never invent data. Order experie
         [`POST /api/ai/cover-letter`, 'JSON parse failure: ' + (result || '').substring(0, 500), req.user?.id]
       ).catch(() => {});
       reply.code(422).send({ error: 'Failed to parse cover letter' });
+    }
+  });
+
+  app.post('/scrape-and-generate', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    preHandler: [creditGuard('cv_generation')],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['url', 'role', 'profile'],
+        properties: {
+          url: { type: 'string', maxLength: 2000 },
+          role: { type: 'string', maxLength: 200 },
+          profile: { type: 'object' },
+          language: { type: 'string', maxLength: 10 },
+          confirmSparse: { type: 'boolean' },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { url, role, profile, language, confirmSparse } = req.body;
+
+    const scrapeResult = await scrapeSite(url);
+
+    if (!scrapeResult.ok) {
+      return reply.code(422).send({ error: scrapeResult.error });
+    }
+
+    if (scrapeResult.sparse && !confirmSparse) {
+      return reply.send({
+        sparse: true,
+        preview: scrapeResult.text.slice(0, 300),
+        url: scrapeResult.url,
+        pages: scrapeResult.pages,
+      });
+    }
+
+    const prompt = buildSpontaneousPrompt(profile, scrapeResult.text, role, language || 'it');
+    const result = await openrouter.generate([{ role: 'user', content: prompt }]);
+
+    try {
+      const parsed = parseJSON(result, [
+        'companyName', 'roleTitle', 'headline', 'summary', 'competencies',
+        'experience', 'omittedExperiences', 'skills',
+      ]);
+      await consumeCredits(req.server.db, req.user.id, 'cv_generation');
+      reply.send(parsed);
+    } catch {
+      app.db.query(
+        `INSERT INTO error_logs (level, endpoint, message, user_id, status_code)
+         VALUES ('warn', $1, $2, $3, 422)`,
+        [`POST /api/ai/scrape-and-generate`, 'JSON parse failure: ' + (result || '').substring(0, 500).replace(/[^\x20-\x7E]/g, ''), req.user?.id]
+      ).catch(() => {});
+      reply.code(422).send({ error: 'Failed to parse generated CV' });
     }
   });
 }
