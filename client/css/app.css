@@ -975,6 +975,58 @@ input, textarea, [contenteditable] {
   color: var(--color-accent);
   margin-bottom: 24px;
 }
+/* ── Mode Selector ── */
+.mode-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.mode-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+.mode-btn.active {
+  border-color: var(--color-accent);
+  background: rgba(13, 115, 119, 0.08);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* ── Sparse Warning ── */
+.sparse-warning {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+  background: var(--color-card);
+}
+.sparse-warning strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--color-text);
+}
+.sparse-warning p {
+  margin: 0 0 4px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
 .jd-textarea {
   min-height: 200px !important;
 }
