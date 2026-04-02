@@ -1030,6 +1030,16 @@ input, textarea, [contenteditable] {
 .jd-textarea {
   min-height: 200px !important;
 }
+.spontaneous-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: var(--color-card);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
 
 .lang-selector {
   display: flex;

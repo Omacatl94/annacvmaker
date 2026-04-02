@@ -309,8 +309,7 @@ export default function Generator({
             <label>{t('generator.urlLabel')}</label>
             <input
               type="url"
-              className="jd-textarea"
-              style={{ minHeight: 'auto', padding: '12px 16px' }}
+              className="spontaneous-input"
               placeholder={t('generator.urlPlaceholder')}
               value={siteUrl}
               onChange={(e) => { setSiteUrl(e.target.value); setSparseData(null); }}
@@ -320,8 +319,7 @@ export default function Generator({
             <label>{t('generator.roleLabel')}</label>
             <input
               type="text"
-              className="jd-textarea"
-              style={{ minHeight: 'auto', padding: '12px 16px' }}
+              className="spontaneous-input"
               placeholder={t('generator.rolePlaceholder')}
               value={targetRole}
               onChange={(e) => setTargetRole(e.target.value)}
