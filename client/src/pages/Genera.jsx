@@ -103,7 +103,7 @@ export default function Genera() {
   }, [user]);
 
   // Auto-save generated CV for registered users
-  const autoSaveGenerated = useCallback(async (prof, data, jd) => {
+  const autoSaveGenerated = useCallback(async (prof, data, jd, sourceType = 'job_description', sourceUrl = null) => {
     if (!user || user.guest) return;
     if (!prof.id) {
       console.warn('[autoSave] Profilo senza ID, salvataggio saltato');
@@ -119,6 +119,8 @@ export default function Genera() {
         style,
         generated_data: { ...data, _profile: prof },
         location: prof.personal?.location || '',
+        source_type: sourceType,
+        source_url: sourceUrl,
       });
       if (saved?.id) setSavedCvId(saved.id);
     } catch (err) {
@@ -131,7 +133,14 @@ export default function Genera() {
     setJobDescription(jd);
     if (oneTapLang) setLang(oneTapLang);
     if (keywords) setExtractedKeywords({ keywords });
-    autoSaveGenerated(profile, result, jd);
+
+    const isSpontaneous = jd && jd.startsWith('[Candidatura spontanea]');
+    const sourceUrl = isSpontaneous ? jd.split(' \u2014 ')[1] || null : null;
+    autoSaveGenerated(
+      profile, result, jd,
+      isSpontaneous ? 'spontaneous' : 'job_description',
+      sourceUrl,
+    );
   }, [profile, autoSaveGenerated]);
 
   const handleEditorUpdate = useCallback((updatedData) => {

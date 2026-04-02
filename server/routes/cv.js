@@ -104,17 +104,18 @@ export default async function cvRoutes(app) {
   });
 
   app.post('/generated', { preHandler: registeredGuard }, async (req, reply) => {
-    const { profile_id, job_description, target_role, target_company, language, style, generated_data, ats_classic, ats_smart, location } = req.body;
+    const { profile_id, job_description, target_role, target_company, language, style, generated_data, ats_classic, ats_smart, location, source_type, source_url } = req.body;
     const profile = await app.db.query(
       'SELECT id FROM cv_profiles WHERE id = $1 AND user_id = $2', [profile_id, userId(req)]
     );
     if (!profile.rows[0]) return reply.code(404).send({ error: 'Profile not found' });
 
     const result = await app.db.query(
-      `INSERT INTO generated_cvs (profile_id, job_description, target_role, target_company, language, style, generated_data, ats_classic, ats_smart, status, notes, location)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'sent', '', $10) RETURNING *`,
+      `INSERT INTO generated_cvs (profile_id, job_description, target_role, target_company, language, style, generated_data, ats_classic, ats_smart, status, notes, location, source_type, source_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'sent', '', $10, $11, $12) RETURNING *`,
       [profile_id, job_description, target_role, target_company, language, style,
-       JSON.stringify(generated_data), ats_classic || null, ats_smart || null, location || null]
+       JSON.stringify(generated_data), ats_classic || null, ats_smart || null, location || null,
+       source_type || 'job_description', source_url || null]
     );
     reply.code(201).send(result.rows[0]);
   });
