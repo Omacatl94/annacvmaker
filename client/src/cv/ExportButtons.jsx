@@ -100,7 +100,7 @@ function downloadBlob(blob, filename) {
   }, 500);
 }
 
-export default function ExportButtons({ profile, lang, generated }) {
+export default function ExportButtons({ profile, lang, generated, cvId }) {
   const [pdfState, setPdfState] = useState('idle');
 
   const handleHTMLDownload = useCallback(async () => {
@@ -127,7 +127,7 @@ export default function ExportButtons({ profile, lang, generated }) {
       const basename = buildFilename(profile, generated);
       track('cv_exported_pdf');
 
-      const blob = await api.exportPDF(fullHTML, basename);
+      const blob = await api.exportPDF(fullHTML, basename, cvId || undefined);
       const pdfBlob = new Blob([blob], { type: 'application/pdf' });
       downloadBlob(pdfBlob, basename + '.pdf');
 
@@ -136,7 +136,7 @@ export default function ExportButtons({ profile, lang, generated }) {
       setPdfState('error');
       setTimeout(() => setPdfState('idle'), 2000);
     }
-  }, [profile, lang, generated]);
+  }, [profile, lang, generated, cvId]);
 
   const pdfLabel =
     pdfState === 'loading' ? t('export.pdfLoading') :

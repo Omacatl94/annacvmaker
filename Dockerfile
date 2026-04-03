@@ -13,7 +13,7 @@ RUN npm ci
 
 COPY --chown=node:node . .
 RUN npm run build:client && npm prune --omit=dev
-RUN mkdir -p uploads/photos uploads/cvs && chown -R node:node uploads
+RUN mkdir -p uploads/photos uploads/cvs uploads/pdfs && chown -R node:node uploads
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

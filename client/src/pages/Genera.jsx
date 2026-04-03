@@ -221,7 +221,7 @@ export default function Genera() {
         </div>
 
         {/* Export buttons */}
-        <ExportButtons profile={profile} style={style} lang={lang} generated={generated} />
+        <ExportButtons profile={profile} style={style} lang={lang} generated={generated} cvId={savedCvId} />
 
         {/* ATS Panel */}
         <ATSPanel

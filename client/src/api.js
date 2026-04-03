@@ -57,17 +57,23 @@ export const api = {
   optimize: (data) => request('/ai/optimize', { method: 'POST', body: data }),
   coverLetter: (data) => request('/ai/cover-letter', { method: 'POST', body: data }),
 
-  exportPDF: async (html, filename) => {
+  exportPDF: async (html, filename, cvId) => {
     const res = await fetch(`${BASE}/cv/export-pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ html, filename }),
+      body: JSON.stringify({ html, filename, cvId }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(err.error || 'PDF export failed');
     }
+    return res.blob();
+  },
+
+  downloadCachedPDF: async (cvId) => {
+    const res = await fetch(`${BASE}/cv/generated/${cvId}/pdf`, { credentials: 'include' });
+    if (!res.ok) return null;
     return res.blob();
   },
 

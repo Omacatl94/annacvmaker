@@ -162,6 +162,25 @@ function CandidatureCard({ item, onUpdate }) {
   const handleDownloadPDF = async () => {
     setPdfLoading(true);
     try {
+      // Try cached PDF first
+      if (item.pdf_path) {
+        const cached = await api.downloadCachedPDF(item.id);
+        if (cached) {
+          const sanitize = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_ -]/g, '').replace(/\s+/g, '_');
+          const basename = `${sanitize(item.target_role || 'CV')}_${sanitize(item.target_company || '')}`;
+          const url = URL.createObjectURL(cached);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = basename + '.pdf';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+          setPdfLoading(false);
+          return;
+        }
+      }
+
+      // Fallback: regenerate PDF
       const data =
         typeof item.generated_data === 'string'
           ? JSON.parse(item.generated_data)
@@ -197,7 +216,7 @@ function CandidatureCard({ item, onUpdate }) {
 
       const sanitize = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_ -]/g, '').replace(/\s+/g, '_');
       const basename = `${sanitize(item.target_role || 'CV')}_${sanitize(item.target_company || '')}`;
-      const blob = await api.exportPDF(fullHTML, basename);
+      const blob = await api.exportPDF(fullHTML, basename, item.id);
       const pdfBlob = new Blob([blob], { type: 'application/pdf' });
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
@@ -205,10 +224,7 @@ function CandidatureCard({ item, onUpdate }) {
       a.download = basename + '.pdf';
       document.body.appendChild(a);
       a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 500);
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
     } catch (err) {
       alert('Errore PDF: ' + err.message);
     }

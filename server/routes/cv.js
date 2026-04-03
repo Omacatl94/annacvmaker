@@ -1,5 +1,11 @@
 import { activeGuard, registeredGuard } from '../middleware/auth-guard.js';
 import { generatePDF } from '../services/pdf-export.js';
+import { writeFile, readFile } from 'fs/promises';
+import { existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
+
+const PDF_DIR = join(process.cwd(), 'uploads', 'pdfs');
+if (!existsSync(PDF_DIR)) mkdirSync(PDF_DIR, { recursive: true });
 
 export default async function cvRoutes(app) {
   app.addHook('preHandler', activeGuard);
@@ -84,15 +90,27 @@ export default async function cvRoutes(app) {
         properties: {
           html: { type: 'string', maxLength: 512000 },
           filename: { type: 'string', maxLength: 120, pattern: '^[a-zA-Z0-9_ -]*$' },
+          cvId: { type: 'string' },
         },
       },
     },
   }, async (req, reply) => {
-    const { html, filename } = req.body;
+    const { html, filename, cvId } = req.body;
     if (!html) return reply.code(400).send({ error: 'html required' });
 
     try {
       const pdf = await generatePDF(html);
+
+      // Cache PDF to disk if cvId provided
+      if (cvId && userId(req)) {
+        const pdfPath = join(PDF_DIR, `${cvId}.pdf`);
+        await writeFile(pdfPath, pdf);
+        await app.db.query(
+          'UPDATE generated_cvs SET pdf_path = $1 WHERE id = $2 AND profile_id IN (SELECT id FROM cv_profiles WHERE user_id = $3)',
+          [pdfPath, cvId, userId(req)]
+        );
+      }
+
       reply
         .header('Content-Type', 'application/pdf')
         .header('Content-Disposition', `attachment; filename="${(filename || 'cv').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 100)}.pdf"`)
@@ -100,6 +118,32 @@ export default async function cvRoutes(app) {
     } catch (err) {
       req.log.error(err);
       reply.code(500).send({ error: 'PDF generation failed' });
+    }
+  });
+
+  // Serve cached PDF
+  app.get('/generated/:id/pdf', { preHandler: registeredGuard }, async (req, reply) => {
+    const { id } = req.params;
+    const result = await app.db.query(
+      `SELECT g.pdf_path, g.target_role, g.target_company
+       FROM generated_cvs g JOIN cv_profiles p ON g.profile_id = p.id
+       WHERE g.id = $1 AND p.user_id = $2`,
+      [id, userId(req)]
+    );
+    if (!result.rows[0] || !result.rows[0].pdf_path) {
+      return reply.code(404).send({ error: 'PDF not found' });
+    }
+
+    const { pdf_path, target_role, target_company } = result.rows[0];
+    try {
+      const pdf = await readFile(pdf_path);
+      const name = [target_role, target_company].filter(Boolean).join('_').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 100) || 'cv';
+      reply
+        .header('Content-Type', 'application/pdf')
+        .header('Content-Disposition', `attachment; filename="${name}.pdf"`)
+        .send(pdf);
+    } catch {
+      return reply.code(404).send({ error: 'PDF file missing' });
     }
   });
 
